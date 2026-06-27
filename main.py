@@ -37,6 +37,83 @@ VAPID_PUBLIC_KEY = "BLc2Vh6tV8HBFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8bFQ8b
 @app.on_event("startup")
 async def startup():
     init_db()
+    _seed_if_empty()
+
+
+def _seed_if_empty():
+    """Auto-seed 3 test patients + 1 doctor on first boot (empty DB)."""
+    with get_db() as conn:
+        if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0:
+            return
+
+    import json as _json
+    from auth import hash_password as _hp
+    from predict import predict as _predict
+
+    def _add_user(name, email, phone, pw, role):
+        with get_db() as conn:
+            cur = conn.execute(
+                "INSERT INTO users (name, email, phone, password_hash, role) VALUES (?,?,?,?,?)",
+                (name, email, phone, _hp(pw), role)
+            )
+            return cur.lastrowid
+
+    def _add_med(uid, name, drug_class, tpd):
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO medications (user_id, name, drug_class, times_per_day) VALUES (?,?,?,?)",
+                (uid, name, drug_class, tpd)
+            )
+
+    def _assess(uid, form_data):
+        pred = _predict(form_data)
+        p = float(pred.get("p_nonadherent", 0))
+        is_na = int(p > 55.0)
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO assessments (user_id, p_nonadherent, is_nonadherent, result_json) VALUES (?,?,?,?)",
+                (uid, p, is_na, _json.dumps({**pred, "p_nonadherent": p, "is_nonadherent": is_na}))
+            )
+
+    _add_user("Dr. Anitha Rao", "doctor@daims.test", "9900001111", "doctor123", "doctor")
+
+    u1 = _add_user("Rajesh Kumar", "rajesh@daims.test", "9900002222", "patient123", "patient")
+    _add_med(u1, "Glipizide", "Sulfonylurea", 2)
+    _add_med(u1, "Metformin", "Metformin", 2)
+    _assess(u1, {"age":"67","sex":"1","weight_kg":"88","height_cm":"164","education":"1",
+        "marital_status":"single","family_size":"2","residence":"tribal","distance_km":"18",
+        "income_score":"2","drug_cost_score":"5","consult_over_250":"1","duration_months":"216",
+        "occupation":"retired","has_htn":"1","comorbidity_count":"2",
+        "drug1_class":"Sulfonylurea","drug2_class":"Metformin","drug3_class":"None",
+        "total_pills":"4","total_daily_frequency":"3","new_drug_added":"1","new_drug_available":"0",
+        "fbs":"185","hba1c":"10.5","rbs":"310","time_since_lab_months":"8",
+        "self_glucose_monitoring":"0","on_diabetic_diet":"0","exercises":"0",
+        "sleeps_adequately":"0","smoking_alcohol":"1","counselling_doctor":"0","counselling_others":"0"})
+
+    u2 = _add_user("Priya Sharma", "priya@daims.test", "9900003333", "patient123", "patient")
+    _add_med(u2, "Metformin 500mg", "Metformin", 2)
+    _assess(u2, {"age":"44","sex":"0","weight_kg":"62","height_cm":"160","education":"5",
+        "marital_status":"married","family_size":"4","residence":"urban","distance_km":"2",
+        "income_score":"4","drug_cost_score":"1","consult_over_250":"0","duration_months":"36",
+        "occupation":"employed","has_htn":"0","comorbidity_count":"0",
+        "drug1_class":"Metformin","drug2_class":"None","drug3_class":"None",
+        "total_pills":"2","total_daily_frequency":"2","new_drug_added":"0","new_drug_available":"0",
+        "fbs":"105","hba1c":"6.8","rbs":"128","time_since_lab_months":"2",
+        "self_glucose_monitoring":"10","on_diabetic_diet":"1","exercises":"1",
+        "sleeps_adequately":"1","smoking_alcohol":"0","counselling_doctor":"1","counselling_others":"1"})
+
+    u3 = _add_user("Mohammed Salim", "mohammed@daims.test", "9900004444", "patient123", "patient")
+    _add_med(u3, "Jardiance", "New_Gen_Oral", 1)
+    _add_med(u3, "Metformin", "Metformin", 2)
+    _assess(u3, {"age":"55","sex":"1","weight_kg":"78","height_cm":"168","education":"2",
+        "marital_status":"married","family_size":"3","residence":"tribal","distance_km":"12",
+        "income_score":"2","drug_cost_score":"4","consult_over_250":"1","duration_months":"96",
+        "occupation":"employed","has_htn":"1","comorbidity_count":"2",
+        "drug1_class":"New_Gen_Oral","drug2_class":"Metformin","drug3_class":"None",
+        "total_pills":"3","total_daily_frequency":"2","new_drug_added":"1","new_drug_available":"0",
+        "fbs":"148","hba1c":"8.4","rbs":"240","time_since_lab_months":"5",
+        "self_glucose_monitoring":"2","on_diabetic_diet":"0","exercises":"0",
+        "sleeps_adequately":"1","smoking_alcohol":"0","counselling_doctor":"1","counselling_others":"0"})
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
