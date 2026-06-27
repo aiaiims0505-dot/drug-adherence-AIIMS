@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Education Hub — DA-AIMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #F0F4FF; color: #0F172A; display: flex; min-height: 100vh; }
+
+    /* Sidebar (shared) */
+    .sidebar { width: 240px; background: #1E1B4B; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 22px 18px 14px; }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 8px; background: #4F46E5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-name { font-size: 17px; font-weight: 700; color: white; letter-spacing: -0.02em; }
+    .logo-sub { font-size: 9px; color: #6366F1; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; padding-left: 44px; }
+    .adherence-pill { margin: 6px 12px 14px; padding: 10px 13px; background: #2D2A6E; border-radius: 8px; }
+    .pill-label { font-size: 9px; color: #818CF8; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
+    .pill-value { display: flex; align-items: center; gap: 7px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green { background: #34D399; }
+    .pill-text-green { font-size: 13px; font-weight: 600; color: #6EE7B7; }
+    .sidebar-nav { flex: 1; padding: 0 8px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px; color: #818CF8; text-decoration: none; margin-bottom: 2px; font-size: 14px; }
+    .nav-item:hover { background: rgba(79,70,229,0.15); color: #C7D2FE; }
+    .nav-item.active { background: rgba(79,70,229,0.22); color: white; font-weight: 500; border-left: 2.5px solid #4F46E5; }
+    .nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-row { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 12px; flex-shrink: 0; }
+    .user-name { font-size: 13px; font-weight: 600; color: white; line-height: 1.2; }
+    .user-role { font-size: 11px; color: #818CF8; }
+
+    /* Main */
+    .main { flex: 1; padding: 28px 30px; overflow-y: auto; }
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 23px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 5px; }
+    .page-sub { font-size: 13px; color: #64748B; }
+
+    /* Filter chips */
+    .filter-row { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+      border: 1.5px solid #E2E8F0; background: white; color: #64748B;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .filter-chip.active { background: #4F46E5; border-color: #4F46E5; color: white; }
+    .filter-chip:hover:not(.active) { border-color: #C7D2FE; color: #4F46E5; }
+
+    /* Card grid */
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .edu-card {
+      background: white; border-radius: 12px; border: 1px solid #E2E8F0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden;
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .edu-card:hover { box-shadow: 0 4px 16px rgba(79,70,229,0.1); transform: translateY(-1px); }
+
+    .card-color-bar { height: 4px; }
+    .bar-indigo { background: #4F46E5; }
+    .bar-emerald { background: #10B981; }
+    .bar-amber { background: #F59E0B; }
+    .bar-rose { background: #F43F5E; }
+
+    .card-body { padding: 18px; flex: 1; display: flex; flex-direction: column; }
+    .card-category {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 8px;
+    }
+    .cat-adherence { color: #4F46E5; }
+    .cat-diet { color: #10B981; }
+    .cat-lifestyle { color: #D97706; }
+    .cat-medications { color: #F43F5E; }
+
+    .card-title { font-size: 15px; font-weight: 600; color: #1E293B; line-height: 1.4; margin-bottom: 8px; }
+    .card-excerpt { font-size: 13px; color: #64748B; line-height: 1.6; flex: 1; }
+    .card-footer {
+      padding: 12px 18px; border-top: 1px solid #F1F5F9;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-meta { font-size: 11px; color: #94A3B8; }
+    .card-read { font-size: 12px; font-weight: 600; color: #4F46E5; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-icon">
+          <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+        <span class="logo-name">DA-AIMS</span>
+      </div>
+      <p class="logo-sub">Patient Portal</p>
+    </div>
+
+    <div class="adherence-pill">
+      <p class="pill-label">Today's doses</p>
+      <div class="pill-value">
+        <span class="status-dot dot-green"></span>
+        <span class="pill-text-green">All 3 taken</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+        </svg>
+        Medications
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7l2 2 4-4"/>
+        </svg>
+        Dose Log
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Assessment
+      </a>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        Education
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        Lifestyle
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        Notifications
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar">PS</div>
+        <div>
+          <p class="user-name">Priya Sharma</p>
+          <p class="user-role">Patient</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="page-header">
+      <p class="page-title">Education Hub</p>
+      <p class="page-sub">Learn about managing Type 2 Diabetes, your medications, and staying adherent</p>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-row">
+      <a href="#" class="filter-chip active">All articles</a>
+      <a href="#" class="filter-chip">Adherence</a>
+      <a href="#" class="filter-chip">Diet</a>
+      <a href="#" class="filter-chip">Medications</a>
+      <a href="#" class="filter-chip">Lifestyle</a>
+    </div>
+
+    <!-- Card grid -->
+    <div class="card-grid">
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-indigo"></div>
+        <div class="card-body">
+          <p class="card-category cat-adherence">Adherence</p>
+          <p class="card-title">Why Missing Doses Is Dangerous</p>
+          <p class="card-excerpt">Even a single missed dose can raise your blood sugar by 20–30 mg/dL. Learn how skipped medications compound over time and what to do if you miss one.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">4 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-indigo"></div>
+        <div class="card-body">
+          <p class="card-category cat-adherence">Adherence</p>
+          <p class="card-title">5 Strategies to Never Miss a Dose</p>
+          <p class="card-excerpt">Practical, real-world techniques for building medication habits — from pill organisers to phone alarms to pairing doses with daily routines.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">3 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-emerald"></div>
+        <div class="card-body">
+          <p class="card-category cat-diet">Diet</p>
+          <p class="card-title">What to Eat with Type 2 Diabetes</p>
+          <p class="card-excerpt">A practical guide to building a diabetic-friendly plate — which carbohydrates to limit, which proteins help, and how portion size affects your glucose readings.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">5 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-emerald"></div>
+        <div class="card-body">
+          <p class="card-category cat-diet">Diet</p>
+          <p class="card-title">How to Read Food Labels as a Diabetic</p>
+          <p class="card-excerpt">Decoding serving sizes, total carbohydrates, added sugars, and glycaemic index on packaged foods. Includes examples of common Indian packaged foods.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">4 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-rose"></div>
+        <div class="card-body">
+          <p class="card-category cat-medications">Medications</p>
+          <p class="card-title">Understanding Metformin</p>
+          <p class="card-excerpt">How Metformin works, why it is first-line therapy for T2D, common side effects like GI upset, and why you should take it with food.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">5 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-amber"></div>
+        <div class="card-body">
+          <p class="card-category cat-lifestyle">Lifestyle</p>
+          <p class="card-title">How Exercise Affects Blood Sugar</p>
+          <p class="card-excerpt">Exercise makes cells more sensitive to insulin. Learn which types of exercise lower glucose fastest and how to safely check your levels before and after activity.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">3 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-amber"></div>
+        <div class="card-body">
+          <p class="card-category cat-lifestyle">Lifestyle</p>
+          <p class="card-title">Why Sleep Matters for Glucose Control</p>
+          <p class="card-excerpt">Poor sleep raises cortisol, which raises blood sugar. Research shows even one night of bad sleep can increase insulin resistance the next day.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">4 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-indigo"></div>
+        <div class="card-body">
+          <p class="card-category cat-adherence">Adherence</p>
+          <p class="card-title">How to Use a Glucometer at Home</p>
+          <p class="card-excerpt">Step-by-step guide to self-monitoring blood glucose: when to test, how to record results, and what numbers to watch for before calling your doctor.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">6 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+      <a href="#" class="edu-card">
+        <div class="card-color-bar bar-indigo"></div>
+        <div class="card-body">
+          <p class="card-category cat-adherence">Adherence</p>
+          <p class="card-title">Jan Aushadhi &amp; PMJAY: Free Drug Schemes</p>
+          <p class="card-excerpt">Government programmes that provide free or subsidised diabetes medications in India — who qualifies, how to enrol, and which outlets are near you.</p>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">3 min read</span>
+          <span class="card-read">Read →</span>
+        </div>
+      </a>
+
+    </div>
+  </main>
+</body>
+</html>

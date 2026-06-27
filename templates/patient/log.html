@@ -1,0 +1,114 @@
+{% extends "base_patient.html" %}
+{% block title %}Dose Log{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+  .log-card { background: white; border-radius: 14px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; margin-bottom: 16px; }
+  .log-card-head { padding: 16px 22px; border-bottom: 1px solid #F1F5F9; display: flex; align-items: center; justify-content: space-between; }
+  .med-title { font-size: 15px; font-weight: 600; color: #1E293B; }
+  .med-sub { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+  .log-card-body { padding: 16px 22px; }
+  .dose-options { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dose-radio { display: none; }
+  .dose-label { display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px; border: 1.5px solid #E2E8F0; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748B; transition: all 0.12s; }
+  .dose-radio:checked + .dose-label.taken { background: #F0FDF4; border-color: #BBF7D0; color: #16A34A; }
+  .dose-radio:checked + .dose-label.missed { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
+  .status-taken { background: #F0FDF4; border-color: #BBF7D0; color: #16A34A; }
+  .status-missed { background: #FEF2F2; border-color: #FECACA; color: #DC2626; }
+  .status-pending { background: #FFFBEB; border-color: #FDE68A; color: #D97706; }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+  <p class="page-title">Dose Log</p>
+</div>
+<p class="page-sub">{{ today }} — Mark each medication as taken or missed. You can update entries throughout the day.</p>
+
+{% if not meds %}
+<div class="card card-pad" style="text-align:center;padding:40px 20px;">
+  <p style="font-size:14px;color:#64748B;margin-bottom:12px;">You haven't added any medications yet.</p>
+  <a href="/patient/medications" class="btn-primary btn-sm" style="justify-content:center;">Add Medications</a>
+</div>
+{% else %}
+
+{% if already_logged %}
+<!-- Read-only view of today's logs -->
+<div class="flash flash-success" style="margin-bottom:16px;">✓ Today's doses have been logged. You can update them below.</div>
+{% endif %}
+
+<form method="post" action="/patient/log">
+  {% for med in meds %}
+  <div class="log-card">
+    <div class="log-card-head">
+      <div>
+        <p class="med-title">{{ med.name }}</p>
+        <p class="med-sub">{{ med.drug_class }} · {{ med.times_per_day }}× per day{% if med.reminder_times %} · {{ med.reminder_times }}{% endif %}</p>
+      </div>
+      {% set cur = today_logs.get(med.id) %}
+      {% if cur == 'taken' %}
+        <span class="badge badge-green">✓ Taken</span>
+      {% elif cur == 'missed' %}
+        <span class="badge badge-red">✗ Missed</span>
+      {% else %}
+        <span class="badge badge-amber">○ Pending</span>
+      {% endif %}
+    </div>
+    <div class="log-card-body">
+      <div class="dose-options">
+        {% set cur = today_logs.get(med.id) %}
+        <input type="radio" name="med_{{ med.id }}" id="taken_{{ med.id }}" value="taken" class="dose-radio" {% if cur == 'taken' %}checked{% endif %}>
+        <label for="taken_{{ med.id }}" class="dose-label taken">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          Mark Taken
+        </label>
+        <input type="radio" name="med_{{ med.id }}" id="missed_{{ med.id }}" value="missed" class="dose-radio" {% if cur == 'missed' %}checked{% endif %}>
+        <label for="missed_{{ med.id }}" class="dose-label missed">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          Mark Missed
+        </label>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <button type="submit" class="btn-primary" style="margin-top:8px;">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    Save Dose Log
+  </button>
+</form>
+{% endif %}
+
+<!-- History (last 7 days) -->
+{% if history %}
+<div class="card card-pad" style="margin-top:24px;">
+  <p class="section-label">Recent History</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:8px 12px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Date</th>
+        <th style="text-align:left;padding:8px 12px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Medication</th>
+        <th style="text-align:left;padding:8px 12px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in history %}
+      <tr style="border-bottom:1px solid #F8FAFC;">
+        <td style="padding:10px 12px;color:#64748B;font-family:'JetBrains Mono',monospace;font-size:12px;">{{ entry.scheduled_date }}</td>
+        <td style="padding:10px 12px;font-weight:500;color:#1E293B;">{{ entry.med_name }}</td>
+        <td style="padding:10px 12px;">
+          {% if entry.status == 'taken' %}
+            <span class="badge badge-green" style="font-size:10px;">✓ Taken</span>
+          {% elif entry.status == 'missed' %}
+            <span class="badge badge-red" style="font-size:10px;">✗ Missed</span>
+          {% else %}
+            <span class="badge badge-amber" style="font-size:10px;">Pending</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

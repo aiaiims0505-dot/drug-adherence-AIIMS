@@ -1,0 +1,61 @@
+{% extends "base_patient.html" %}
+{% block title %}{{ article.title }}{% endblock %}
+
+{% block content %}
+<style>
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #64748B; text-decoration: none; font-weight: 500; margin-bottom: 18px; }
+  .back-link:hover { color: #4F46E5; }
+  .article-header { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 28px 30px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .article-cat { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .article-h1 { font-size: 26px; font-weight: 700; color: #0F172A; line-height: 1.3; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .article-meta { font-size: 12px; color: #94A3B8; font-family: 'JetBrains Mono', monospace; }
+  .article-body { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 28px 30px; line-height: 1.75; font-size: 15px; color: #374151; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .article-body h2 { font-size: 18px; font-weight: 700; color: #1E293B; margin: 24px 0 10px; letter-spacing: -0.01em; }
+  .article-body h3 { font-size: 15px; font-weight: 700; color: #1E293B; margin: 18px 0 8px; }
+  .article-body p { margin-bottom: 14px; }
+  .article-body ul, .article-body ol { padding-left: 22px; margin-bottom: 14px; }
+  .article-body li { margin-bottom: 6px; }
+  .article-body strong { color: #1E293B; font-weight: 600; }
+  .article-body .callout { background: #EEF2FF; border-left: 3px solid #4F46E5; padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 18px 0; font-size: 14px; }
+  .related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 18px; }
+  .related-card { background: white; border-radius: 10px; border: 1px solid #E2E8F0; padding: 14px 16px; text-decoration: none; color: inherit; }
+  .related-card:hover { border-color: #C7D2FE; }
+  .related-title { font-size: 14px; font-weight: 600; color: #1E293B; line-height: 1.35; margin-bottom: 4px; }
+  .related-meta { font-size: 11px; color: #94A3B8; font-family: 'JetBrains Mono', monospace; }
+</style>
+
+<a href="/patient/education" class="back-link">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+  Back to Education Hub
+</a>
+
+<div class="article-header">
+  <p class="article-cat" style="color:
+    {% if article.category == 'Adherence' %}#4F46E5
+    {% elif article.category == 'Diet' %}#16A34A
+    {% elif article.category == 'Lifestyle' %}#D97706
+    {% else %}#9333EA{% endif %};">
+    {{ article.category }}
+  </p>
+  <h1 class="article-h1">{{ article.title }}</h1>
+  <p class="article-meta">{{ article.read_time }} · DA-AIMS Education</p>
+</div>
+
+<div class="article-body">
+  {{ article.body | safe }}
+</div>
+
+{% if related %}
+<div class="card card-pad" style="margin-top:18px;">
+  <p class="section-label">Related Articles</p>
+  <div class="related-grid">
+    {% for rel in related %}
+    <a href="/patient/education/{{ rel.slug }}" class="related-card">
+      <p class="related-title">{{ rel.title }}</p>
+      <p class="related-meta">{{ rel.category }} · {{ rel.read_time }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

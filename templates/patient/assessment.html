@@ -1,0 +1,421 @@
+{% extends "base_patient.html" %}
+{% block title %}Risk Assessment{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+
+  /* Section cards */
+  .sec { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 22px 24px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .sec-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .sec-num { width: 24px; height: 24px; border-radius: 6px; background: #EEF2FF; color: #4F46E5; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
+  .sec-title { font-size: 15px; font-weight: 700; color: #1E293B; }
+  .sec-desc { font-size: 12px; color: #94A3B8; margin-bottom: 18px; margin-left: 34px; }
+
+  /* inline yes/no toggle */
+  .yn-group { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid #E2E8F0; width: fit-content; }
+  .yn-radio { display: none; }
+  .yn-lbl { padding: 8px 20px; font-size: 13px; font-weight: 500; color: #64748B; cursor: pointer; background: white; transition: all 0.12s; }
+  .yn-lbl:not(:last-child) { border-right: 1.5px solid #E2E8F0; }
+  .yn-radio:checked + .yn-lbl { background: #4F46E5; color: white; }
+
+  /* complication checkbox pills */
+  .pill-check { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #374151; padding: 7px 12px; border: 1.5px solid #E2E8F0; border-radius: 7px; cursor: pointer; background: white; }
+  .pill-check input { width: 14px; height: 14px; accent-color: #4F46E5; }
+
+  /* result block */
+  .result-card { background: #1E1B4B; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+  .result-num { font-size: 56px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; line-height: 1; }
+  .factor-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .factor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .rec-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px; }
+
+  /* conditional show/hide */
+  #new-drug-avail-row { display: none; }
+</style>
+
+<p class="page-title">Risk Assessment</p>
+<p class="page-sub">Answer all questions for an accurate AI risk score. Fields marked <span style="color:#EF4444;">*</span> are required. Pre-filled values are pulled from your profile.</p>
+
+{% if result %}
+<!-- ── Result ── -->
+{% set tier_color = '#F87171' if result.risk_tier == 'HIGH' else ('#FBBF24' if result.risk_tier == 'MODERATE' else '#34D399') %}
+{% set tier_label = '⚠ High Non-Adherence Risk' if result.risk_tier == 'HIGH' else ('⚠ Moderate Non-Adherence Risk' if result.risk_tier == 'MODERATE' else '✓ Low Non-Adherence Risk') %}
+<div class="result-card">
+  <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.1em;font-family:'JetBrains Mono',monospace;margin-bottom:8px;">Your Assessment Result</p>
+  <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
+    <span class="result-num" style="color:{{ tier_color }};">{{ result.p_nonadherent }}</span>
+    <span style="font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:700;color:{{ tier_color }};">%</span>
+  </div>
+  <p style="font-size:16px;font-weight:700;color:{{ tier_color }};margin-bottom:4px;">{{ tier_label }}</p>
+  <!-- Risk tier bar -->
+  <div style="display:flex;gap:4px;margin-bottom:12px;">
+    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'LOW' %}#34D399{% else %}#1F2937{% endif %};"></div>
+    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'MODERATE' %}#FBBF24{% else %}#1F2937{% endif %};"></div>
+    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'HIGH' %}#F87171{% else %}#1F2937{% endif %};"></div>
+  </div>
+  <p style="font-size:12px;color:#818CF8;margin-bottom:14px;">Non-adherence probability · Random Forest classifier · AUC 0.802 · F2-score 0.833</p>
+
+  {% if result.factors %}
+  <div style="margin-bottom:14px;">
+    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Top Risk Factors (model-identified)</p>
+    {% for f in result.factors %}
+    <div class="factor-item">
+      <span class="factor-dot" style="background:{% if f.impact == 'high' %}#F87171{% else %}#FBBF24{% endif %};"></span>
+      <span style="font-size:13px;color:#E2E8F0;">{{ f.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if result.recommendations %}
+  <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Personalised Recommendations</p>
+    {% for rec in result.recommendations %}
+    <div class="rec-item">
+      <span style="font-size:18px;flex-shrink:0;line-height:1.3;">{{ rec.icon }}</span>
+      <div>
+        <p style="font-size:13px;font-weight:700;color:#E2E8F0;margin-bottom:2px;">{{ rec.title }}</p>
+        <p style="font-size:12px;color:#94A3B8;line-height:1.5;">{{ rec.text }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<p style="font-size:12px;color:#94A3B8;margin-bottom:20px;text-align:center;">Update your score — re-fill any changed values below and re-run.</p>
+{% endif %}
+
+<form method="post" action="/patient/assessment">
+
+<!-- ── Section 1: About You ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">1</span><p class="sec-title">About You</p></div>
+  <p class="sec-desc">Personal and physical details used by the model.</p>
+  <div class="grid-2" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Age <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="age" class="field-input" placeholder="e.g. 52" min="18" max="99" required value="{{ prefill.age or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Sex <span style="color:#EF4444;">*</span></label>
+      <select name="sex" class="field-select" required>
+        <option value="">Select...</option>
+        <option value="1" {% if prefill.sex == '1' %}selected{% endif %}>Male</option>
+        <option value="0" {% if prefill.sex == '0' %}selected{% endif %}>Female</option>
+      </select>
+    </div>
+  </div>
+  <div class="grid-2" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Weight (kg) <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+      <input type="number" name="weight_kg" class="field-input" placeholder="e.g. 72" step="0.1" min="30" max="200" value="{{ prefill.weight_kg or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Height (cm) <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+      <input type="number" name="height_cm" class="field-input" placeholder="e.g. 165" step="0.5" min="100" max="220" value="{{ prefill.height_cm or '' }}">
+    </div>
+  </div>
+  <div class="grid-2" style="gap:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Education level <span style="color:#EF4444;">*</span></label>
+      <select name="education" class="field-select" required>
+        <option value="">Select...</option>
+        <option value="1" {% if prefill.education == '1' %}selected{% endif %}>No formal education</option>
+        <option value="2" {% if prefill.education == '2' %}selected{% endif %}>Primary (up to Class 5)</option>
+        <option value="3" {% if prefill.education == '3' %}selected{% endif %}>Secondary (up to Class 10)</option>
+        <option value="4" {% if prefill.education == '4' %}selected{% endif %}>Higher Secondary (11th–12th)</option>
+        <option value="5" {% if prefill.education == '5' %}selected{% endif %}>Graduate and above</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Marital status <span style="color:#EF4444;">*</span></label>
+      <select name="marital_status" class="field-select" required>
+        <option value="married"   {% if prefill.marital_status == 'married' or not prefill.marital_status %}selected{% endif %}>Married</option>
+        <option value="single"    {% if prefill.marital_status == 'single' %}selected{% endif %}>Single / Never married</option>
+        <option value="divorced"  {% if prefill.marital_status == 'divorced' %}selected{% endif %}>Divorced / Separated</option>
+        <option value="widowed"   {% if prefill.marital_status == 'widowed' %}selected{% endif %}>Widowed</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 2: Living Situation ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">2</span><p class="sec-title">Your Living Situation</p></div>
+  <p class="sec-desc">Where you live and your household affect how easily you can access medication.</p>
+  <div class="grid-3" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Number of people in household <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="family_size" class="field-input" placeholder="e.g. 4" min="1" max="20" required value="{{ prefill.family_size or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Residence type <span style="color:#EF4444;">*</span></label>
+      <select name="residence" class="field-select" required>
+        <option value="urban"  {% if prefill.residence == 'urban' %}selected{% endif %}>Urban</option>
+        <option value="rural"  {% if prefill.residence == 'rural' %}selected{% endif %}>Rural</option>
+        <option value="tribal" {% if prefill.residence == 'tribal' %}selected{% endif %}>Tribal / Remote</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Distance to nearest clinic (km) <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="distance_km" class="field-input" placeholder="e.g. 3" step="0.5" min="0" max="200" required value="{{ prefill.distance_km or '' }}">
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 3: Finances ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">3</span><p class="sec-title">Finances</p></div>
+  <p class="sec-desc">Financial burden is one of the strongest predictors of non-adherence in this model.</p>
+  <div class="field-group">
+    <label class="field-label">Monthly household income <span style="color:#EF4444;">*</span></label>
+    <select name="income_score" class="field-select" required>
+      <option value="">Select range...</option>
+      <option value="1" {% if prefill.income_score == '1' %}selected{% endif %}>Below ₹5,000 / month</option>
+      <option value="2" {% if prefill.income_score == '2' %}selected{% endif %}>₹5,000 – ₹10,000 / month</option>
+      <option value="3" {% if prefill.income_score == '3' %}selected{% endif %}>₹10,000 – ₹20,000 / month</option>
+      <option value="4" {% if prefill.income_score == '4' %}selected{% endif %}>₹20,000 – ₹40,000 / month</option>
+      <option value="5" {% if prefill.income_score == '5' %}selected{% endif %}>Above ₹40,000 / month</option>
+    </select>
+  </div>
+  <div class="field-group">
+    <label class="field-label">Rough monthly expenses on diabetes drugs <span style="color:#EF4444;">*</span></label>
+    <select name="drug_cost_score" class="field-select" required>
+      <option value="">Select range...</option>
+      <option value="1" {% if prefill.drug_cost_score == '1' %}selected{% endif %}>Below ₹200 / month</option>
+      <option value="2" {% if prefill.drug_cost_score == '2' %}selected{% endif %}>₹200 – ₹500 / month</option>
+      <option value="3" {% if prefill.drug_cost_score == '3' %}selected{% endif %}>₹500 – ₹1,000 / month</option>
+      <option value="4" {% if prefill.drug_cost_score == '4' %}selected{% endif %}>₹1,000 – ₹2,000 / month</option>
+      <option value="5" {% if prefill.drug_cost_score == '5' %}selected{% endif %}>Above ₹2,000 / month</option>
+    </select>
+  </div>
+  <div class="field-group" style="margin-bottom:0;">
+    <label class="field-label">Monthly consultation expenses ≥ ₹250? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="consult_over_250" id="co-yes" value="1" class="yn-radio" {% if prefill.consult_over_250 == '1' %}checked{% endif %} required>
+      <label for="co-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="consult_over_250" id="co-no" value="0" class="yn-radio" {% if prefill.consult_over_250 != '1' %}checked{% endif %}>
+      <label for="co-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 4: Your Diabetes ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">4</span><p class="sec-title">Your Diabetes</p></div>
+  <p class="sec-desc">Duration and complications affect the model's risk estimate.</p>
+  <div class="grid-2" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Duration of illness (months) <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="duration_months" class="field-input" placeholder="e.g. 84 (= 7 years)" min="1" max="600" required value="{{ prefill.duration_months or '' }}">
+      <p style="font-size:11px;color:#94A3B8;margin-top:4px;">Enter exact months. 1 year = 12 months.</p>
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Occupation <span style="color:#EF4444;">*</span></label>
+      <select name="occupation" class="field-select" required>
+        <option value="employed"   {% if prefill.occupation == 'employed' %}selected{% endif %}>Employed / Self-employed</option>
+        <option value="retired"    {% if prefill.occupation == 'retired' %}selected{% endif %}>Retired</option>
+        <option value="unemployed" {% if prefill.occupation == 'unemployed' %}selected{% endif %}>Unemployed / Homemaker</option>
+      </select>
+    </div>
+  </div>
+  <div class="field-group">
+    <label class="field-label">Do you have hypertension (high blood pressure)? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="has_htn" id="htn-yes" value="1" class="yn-radio" {% if prefill.has_htn == '1' %}checked{% endif %} required>
+      <label for="htn-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="has_htn" id="htn-no" value="0" class="yn-radio" {% if prefill.has_htn != '1' %}checked{% endif %}>
+      <label for="htn-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+  <div class="field-group" style="margin-bottom:0;">
+    <label class="field-label">Other comorbidities (select all that apply)</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+      {% for c in ['Retinopathy', 'Neuropathy', 'Nephropathy', 'Coronary Artery Disease', 'Dyslipidaemia', 'None'] %}
+      <label class="pill-check">
+        <input type="checkbox" name="comorbidities" value="{{ c }}" {% if prefill.comorbidities and c in prefill.comorbidities %}checked{% endif %}>
+        {{ c }}
+      </label>
+      {% endfor %}
+    </div>
+    <p style="font-size:11px;color:#94A3B8;margin-top:6px;">Hypertension is asked separately above and counted automatically.</p>
+  </div>
+</div>
+
+<!-- ── Section 5: Medications ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">5</span><p class="sec-title">Your Medications</p></div>
+  <p class="sec-desc">Pre-filled from your medication list. You can have up to 3 diabetes drug classes — leave Drug 2 / 3 as None if not applicable.</p>
+  <div class="grid-3" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Drug 1 class <span style="color:#EF4444;">*</span></label>
+      <select name="drug1_class" class="field-select" required>
+        <option value="Metformin"         {% if prefill.drug1_class == 'Metformin' or not prefill.drug1_class %}selected{% endif %}>Metformin</option>
+        <option value="Sulfonylurea"       {% if prefill.drug1_class == 'Sulfonylurea' %}selected{% endif %}>Sulfonylurea</option>
+        <option value="New_Gen_Oral"       {% if prefill.drug1_class == 'New_Gen_Oral' %}selected{% endif %}>New Gen Oral (DPP-4 / SGLT-2 / GLP-1)</option>
+        <option value="Other_Combination"  {% if prefill.drug1_class == 'Other_Combination' %}selected{% endif %}>Other / Fixed-dose Combination</option>
+        <option value="None"               {% if prefill.drug1_class == 'None' %}selected{% endif %}>None</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Drug 2 class</label>
+      <select name="drug2_class" class="field-select">
+        <option value="None"               {% if prefill.drug2_class == 'None' or not prefill.drug2_class %}selected{% endif %}>None</option>
+        <option value="Metformin"         {% if prefill.drug2_class == 'Metformin' %}selected{% endif %}>Metformin</option>
+        <option value="Sulfonylurea"       {% if prefill.drug2_class == 'Sulfonylurea' %}selected{% endif %}>Sulfonylurea</option>
+        <option value="New_Gen_Oral"       {% if prefill.drug2_class == 'New_Gen_Oral' %}selected{% endif %}>New Gen Oral</option>
+        <option value="Other_Combination"  {% if prefill.drug2_class == 'Other_Combination' %}selected{% endif %}>Other / Combination</option>
+      </select>
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Drug 3 class</label>
+      <select name="drug3_class" class="field-select">
+        <option value="None"               {% if prefill.drug3_class == 'None' or not prefill.drug3_class %}selected{% endif %}>None</option>
+        <option value="Metformin"         {% if prefill.drug3_class == 'Metformin' %}selected{% endif %}>Metformin</option>
+        <option value="Sulfonylurea"       {% if prefill.drug3_class == 'Sulfonylurea' %}selected{% endif %}>Sulfonylurea</option>
+        <option value="New_Gen_Oral"       {% if prefill.drug3_class == 'New_Gen_Oral' %}selected{% endif %}>New Gen Oral</option>
+        <option value="Other_Combination"  {% if prefill.drug3_class == 'Other_Combination' %}selected{% endif %}>Other / Combination</option>
+      </select>
+    </div>
+  </div>
+  <div class="grid-2" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Total number of pills per day <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="total_pills" class="field-input" placeholder="e.g. 4" min="1" max="30" required value="{{ prefill.total_pills or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Total doses per day (across all drugs) <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="total_daily_frequency" class="field-input" placeholder="e.g. 3" min="1" max="20" required value="{{ prefill.total_daily_frequency or '' }}">
+    </div>
+  </div>
+  <div class="field-group">
+    <label class="field-label">Was any new drug added at your last clinic visit? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="new_drug_added" id="nd-yes" value="1" class="yn-radio" {% if prefill.new_drug_added == '1' %}checked{% endif %} onchange="showNewDrugAvail(true)" required>
+      <label for="nd-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="new_drug_added" id="nd-no" value="0" class="yn-radio" {% if prefill.new_drug_added != '1' %}checked{% endif %} onchange="showNewDrugAvail(false)">
+      <label for="nd-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+  <div class="field-group" id="new-drug-avail-row" style="margin-bottom:0;{% if prefill.new_drug_added == '1' %}display:block;{% endif %}">
+    <label class="field-label">Is that new drug easily available at your pharmacy?</label>
+    <div class="yn-group">
+      <input type="radio" name="new_drug_available" id="na-yes" value="1" class="yn-radio" {% if prefill.new_drug_available == '1' %}checked{% endif %}>
+      <label for="na-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="new_drug_available" id="na-no" value="0" class="yn-radio" {% if prefill.new_drug_available != '1' %}checked{% endif %}>
+      <label for="na-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 6: Labs & Monitoring ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">6</span><p class="sec-title">Lab Results & Monitoring</p></div>
+  <p class="sec-desc">Enter your most recent lab values. All are optional but significantly improve prediction accuracy — especially RBS, which is the top model feature.</p>
+  <div class="grid-3" style="gap:14px;margin-bottom:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Last FBS — Fasting Blood Sugar (mg/dL)</label>
+      <input type="number" name="fbs" class="field-input" placeholder="e.g. 140" min="50" max="600" value="{{ prefill.fbs or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Last HbA1c (%)</label>
+      <input type="number" name="hba1c" class="field-input" placeholder="e.g. 8.2" step="0.1" min="4" max="16" value="{{ prefill.hba1c or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Last RBS — Random Blood Sugar (mg/dL) <span style="font-size:10px;background:#FEF2F2;color:#DC2626;padding:1px 5px;border-radius:3px;font-weight:600;">Top feature</span></label>
+      <input type="number" name="rbs" class="field-input" placeholder="e.g. 180" min="50" max="700" value="{{ prefill.rbs or '' }}">
+    </div>
+  </div>
+  <div class="grid-2" style="gap:14px;">
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Time since last lab investigation (months)</label>
+      <input type="number" name="time_since_lab_months" class="field-input" placeholder="e.g. 3" min="0" max="60" step="1" value="{{ prefill.time_since_lab_months or '' }}">
+    </div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label class="field-label">Self blood glucose monitoring — times per month <span style="color:#EF4444;">*</span></label>
+      <input type="number" name="self_glucose_monitoring" class="field-input" placeholder="e.g. 4 (or 0 if never)" min="0" max="120" required value="{{ prefill.self_glucose_monitoring or '0' }}">
+    </div>
+  </div>
+</div>
+
+<!-- ── Section 7: Lifestyle & Support ── -->
+<div class="sec">
+  <div class="sec-header"><span class="sec-num">7</span><p class="sec-title">Lifestyle & Support</p></div>
+  <p class="sec-desc">Daily habits and access to counselling are key behavioural risk factors.</p>
+
+  <div class="field-group">
+    <label class="field-label">Do you follow a diabetic diet? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="on_diabetic_diet" id="diet-yes" value="1" class="yn-radio" {% if prefill.on_diabetic_diet == '1' %}checked{% endif %} required>
+      <label for="diet-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="on_diabetic_diet" id="diet-no" value="0" class="yn-radio" {% if prefill.on_diabetic_diet != '1' %}checked{% endif %}>
+      <label for="diet-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label class="field-label">Do you exercise regularly? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="exercises" id="ex-yes" value="1" class="yn-radio" {% if prefill.exercises == '1' %}checked{% endif %} required>
+      <label for="ex-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="exercises" id="ex-no" value="0" class="yn-radio" {% if prefill.exercises != '1' %}checked{% endif %}>
+      <label for="ex-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label class="field-label">Do you sleep adequately (7–9 hours)? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="sleeps_adequately" id="sl-yes" value="1" class="yn-radio" {% if prefill.sleeps_adequately == '1' %}checked{% endif %} required>
+      <label for="sl-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="sleeps_adequately" id="sl-no" value="0" class="yn-radio" {% if prefill.sleeps_adequately != '1' %}checked{% endif %}>
+      <label for="sl-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label class="field-label">Currently smoking or drinking alcohol? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="smoking_alcohol" id="sa-yes" value="1" class="yn-radio" {% if prefill.smoking_alcohol == '1' %}checked{% endif %} required>
+      <label for="sa-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="smoking_alcohol" id="sa-no" value="0" class="yn-radio" {% if prefill.smoking_alcohol != '1' %}checked{% endif %}>
+      <label for="sa-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label class="field-label">Do you receive counselling about your medication from your <strong>treating doctor</strong>? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="counselling_doctor" id="cd-yes" value="1" class="yn-radio" {% if prefill.counselling_doctor == '1' %}checked{% endif %} required>
+      <label for="cd-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="counselling_doctor" id="cd-no" value="0" class="yn-radio" {% if prefill.counselling_doctor != '1' %}checked{% endif %}>
+      <label for="cd-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+
+  <div class="field-group" style="margin-bottom:0;">
+    <label class="field-label">Do you receive counselling from <strong>others</strong> (nurse, pharmacist, family, support group)? <span style="color:#EF4444;">*</span></label>
+    <div class="yn-group">
+      <input type="radio" name="counselling_others" id="co2-yes" value="1" class="yn-radio" {% if prefill.counselling_others == '1' %}checked{% endif %} required>
+      <label for="co2-yes" class="yn-lbl">Yes</label>
+      <input type="radio" name="counselling_others" id="co2-no" value="0" class="yn-radio" {% if prefill.counselling_others != '1' %}checked{% endif %}>
+      <label for="co2-no" class="yn-lbl">No</label>
+    </div>
+  </div>
+</div>
+
+<button type="submit" class="btn-primary" style="margin-top:8px;">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+  Run Assessment
+</button>
+<p style="font-size:11px;color:#94A3B8;margin-top:8px;">Random Forest model trained on 295 T2D patients from a tertiary care setting. AUC 0.802 · F2-score 0.833 · Threshold 0.38.</p>
+</form>
+
+<script>
+function showNewDrugAvail(show) {
+  document.getElementById('new-drug-avail-row').style.display = show ? 'block' : 'none';
+}
+</script>
+{% endblock %}

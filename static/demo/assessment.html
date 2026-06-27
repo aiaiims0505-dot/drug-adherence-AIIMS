@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Assessment — DA-AIMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #F0F4FF; color: #0F172A; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar (shared) ── */
+    .sidebar { width: 240px; background: #1E1B4B; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 22px 18px 14px; }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 8px; background: #4F46E5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-name { font-size: 17px; font-weight: 700; color: white; letter-spacing: -0.02em; }
+    .logo-sub { font-size: 9px; color: #6366F1; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; padding-left: 44px; }
+    .adherence-pill { margin: 6px 12px 14px; padding: 10px 13px; background: #2D2A6E; border-radius: 8px; }
+    .pill-label { font-size: 9px; color: #818CF8; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
+    .pill-value { display: flex; align-items: center; gap: 7px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-red { background: #F87171; }
+    .pill-text-red { font-size: 13px; font-weight: 600; color: #FCA5A5; }
+    .sidebar-nav { flex: 1; padding: 0 8px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px; color: #818CF8; text-decoration: none; margin-bottom: 2px; font-size: 14px; }
+    .nav-item:hover { background: rgba(79,70,229,0.15); color: #C7D2FE; }
+    .nav-item.active { background: rgba(79,70,229,0.22); color: white; font-weight: 500; border-left: 2.5px solid #4F46E5; }
+    .nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-row { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 12px; flex-shrink: 0; }
+    .user-name { font-size: 13px; font-weight: 600; color: white; line-height: 1.2; }
+    .user-role { font-size: 11px; color: #818CF8; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 28px 32px; overflow-y: auto; max-width: 860px; }
+
+    .page-header { margin-bottom: 6px; }
+    .page-title { font-size: 23px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 5px; }
+    .page-sub { font-size: 13px; color: #64748B; line-height: 1.5; margin-bottom: 24px; }
+
+    /* Progress strip */
+    .progress-strip { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+    .progress-step { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: #94A3B8; }
+    .progress-step.done { color: #10B981; }
+    .progress-step.active { color: #4F46E5; font-weight: 600; }
+    .progress-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: white; }
+    .progress-dot.done { background: #10B981; border-color: #10B981; color: white; }
+    .progress-dot.active { background: #4F46E5; border-color: #4F46E5; color: white; }
+    .progress-line { flex: 1; height: 2px; background: #E2E8F0; margin: 0 6px; min-width: 16px; }
+    .progress-line.done { background: #10B981; }
+
+    /* Section card */
+    .section-card { background: white; border-radius: 14px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 16px; overflow: hidden; }
+    .section-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #F1F5F9; }
+    .section-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icon-blue { background: #EEF2FF; }
+    .icon-green { background: #F0FDF4; }
+    .icon-amber { background: #FFFBEB; }
+    .icon-purple { background: #F5F3FF; }
+    .icon-rose { background: #FFF1F2; }
+    .section-title { font-size: 15px; font-weight: 700; color: #1E293B; }
+    .section-desc { font-size: 12px; color: #94A3B8; margin-top: 1px; }
+    .section-body { padding: 20px 22px; }
+
+    /* Field layout */
+    .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .field-group { margin-bottom: 16px; }
+    .field-group:last-child { margin-bottom: 0; }
+    .field-label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 7px; }
+    .field-label-optional { font-size: 11px; color: #94A3B8; font-weight: 400; margin-left: 4px; }
+    .field-input {
+      display: block; width: 100%;
+      border: 1.5px solid #CBD5E1; border-radius: 8px;
+      padding: 10px 13px; font-size: 14px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #fff; color: #0F172A;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field-input:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+    .field-select {
+      display: block; width: 100%;
+      border: 1.5px solid #CBD5E1; border-radius: 8px;
+      padding: 10px 13px; font-size: 14px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #fff; color: #0F172A;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .field-select:focus { outline: none; border-color: #4F46E5; }
+
+    /* Yes / No toggle */
+    .toggle-group { display: grid; grid-template-columns: 1fr 1fr; border-radius: 8px; overflow: hidden; border: 1.5px solid #E2E8F0; }
+    .toggle-btn {
+      padding: 10px 8px; border: none; background: white;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; color: #64748B;
+      transition: background 0.1s, color 0.1s; text-align: center;
+    }
+    .toggle-btn:first-child { border-right: 1px solid #E2E8F0; }
+    .toggle-btn.yes-active { background: #F0FDF4; color: #16A34A; font-weight: 600; }
+    .toggle-btn.no-active { background: #FEF2F2; color: #DC2626; font-weight: 600; }
+
+    /* Pre-filled section */
+    .prefilled-notice { display: flex; align-items: center; gap: 8px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; }
+    .prefilled-notice p { font-size: 12px; color: #4338CA; }
+    .prefilled-notice strong { font-weight: 600; }
+
+    .med-prefilled-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #F8FAFF; border: 1px solid #E0E7FF; border-radius: 8px; margin-bottom: 8px; }
+    .med-pf-name { font-size: 14px; font-weight: 500; color: #1E293B; }
+    .med-pf-detail { font-size: 12px; color: #64748B; margin-top: 1px; }
+    .med-pf-class { font-size: 11px; font-family: 'JetBrains Mono', monospace; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; padding: 2px 8px; border-radius: 4px; }
+
+    /* Optional label */
+    .optional-section-label { font-size: 11px; font-family: 'JetBrains Mono', monospace; background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; padding: 3px 10px; border-radius: 4px; display: inline-block; margin-left: 8px; vertical-align: middle; }
+
+    /* Divider */
+    .field-divider { border: none; border-top: 1px solid #F1F5F9; margin: 16px 0; }
+
+    /* Submit area */
+    .submit-area { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 24px 22px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .submit-note { font-size: 13px; color: #64748B; }
+    .submit-note strong { color: #374151; }
+    .btn-submit { display: inline-flex; align-items: center; gap: 10px; background: #4F46E5; color: white; padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; letter-spacing: -0.01em; }
+    .btn-submit:hover { background: #4338CA; }
+
+    /* Inline result (shown after submit) */
+    .result-preview { background: #1E1B4B; border-radius: 14px; padding: 24px; margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .result-big { font-size: 56px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #F87171; letter-spacing: -0.03em; line-height: 1; }
+    .result-pct { font-size: 24px; color: #F87171; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+    .result-label { font-size: 11px; color: #818CF8; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .result-verdict { display: inline-flex; align-items: center; gap: 5px; background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.3); color: #F87171; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 12px; }
+    .result-breakdown { text-align: right; }
+    .result-breakdown-item { margin-bottom: 8px; }
+    .result-breakdown-label { font-size: 10px; color: #818CF8; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+    .result-breakdown-val { font-size: 22px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-icon">
+          <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+        <span class="logo-name">DA-AIMS</span>
+      </div>
+      <p class="logo-sub">Patient Portal</p>
+    </div>
+
+    <div class="adherence-pill">
+      <p class="pill-label">Today's doses</p>
+      <div class="pill-value">
+        <span class="status-dot dot-red"></span>
+        <span class="pill-text-red">1 of 3 pending</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+        </svg>
+        Medications
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7l2 2 4-4"/>
+        </svg>
+        Dose Log
+      </a>
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Assessment
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        Education
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        Lifestyle
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        Notifications
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar">PS</div>
+        <div>
+          <p class="user-name">Priya Sharma</p>
+          <p class="user-role">Patient</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Form -->
+  <main class="main">
+    <div class="page-header">
+      <p class="page-title">Adherence Self-Assessment</p>
+      <p class="page-sub">Answer these questions about yourself. The AI model will estimate your risk of missing medications and show you personalised recommendations. Takes about 3 minutes.</p>
+    </div>
+
+    <!-- Progress strip -->
+    <div class="progress-strip">
+      <div class="progress-step done">
+        <div class="progress-dot done">✓</div>
+        <span>About You</span>
+      </div>
+      <div class="progress-line done"></div>
+      <div class="progress-step done">
+        <div class="progress-dot done">✓</div>
+        <span>Lifestyle</span>
+      </div>
+      <div class="progress-line done"></div>
+      <div class="progress-step active">
+        <div class="progress-dot active">3</div>
+        <span>Medications</span>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="color:#94A3B8;font-size:10px;font-weight:700;">4</div>
+        <span>Lab Results</span>
+      </div>
+      <div class="progress-line"></div>
+      <div class="progress-step">
+        <div class="progress-dot" style="color:#94A3B8;font-size:10px;font-weight:700;">5</div>
+        <span>Situation</span>
+      </div>
+    </div>
+
+    <form>
+
+      <!-- ── Section 1: About You ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-blue">
+            <svg width="18" height="18" fill="none" stroke="#4F46E5" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">About You</p>
+            <p class="section-desc">Your basic personal details</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid-3">
+            <div class="field-group">
+              <label class="field-label">Your age <span style="color:#EF4444;">*</span></label>
+              <input type="number" class="field-input" placeholder="e.g. 52" value="52" min="18" max="100">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Sex <span style="color:#EF4444;">*</span></label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn yes-active">Female</button>
+                <button type="button" class="toggle-btn">Male</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Education level <span style="color:#EF4444;">*</span></label>
+              <select class="field-select">
+                <option>Primary school</option>
+                <option selected>Secondary school</option>
+                <option>Graduate</option>
+                <option>Post-graduate</option>
+                <option>No formal education</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-grid-3">
+            <div class="field-group">
+              <label class="field-label">Weight (kg) <span class="field-label-optional">(optional)</span></label>
+              <input type="number" class="field-input" placeholder="e.g. 68" value="68">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Height (cm) <span class="field-label-optional">(optional)</span></label>
+              <input type="number" class="field-input" placeholder="e.g. 158" value="158">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Family size <span style="color:#EF4444;">*</span></label>
+              <input type="number" class="field-input" placeholder="Number of people at home" value="4">
+            </div>
+          </div>
+
+          <div class="field-grid-2">
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Marital status <span style="color:#EF4444;">*</span></label>
+              <select class="field-select">
+                <option selected>Married</option>
+                <option>Single</option>
+                <option>Divorced / Separated</option>
+                <option>Widowed</option>
+              </select>
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Occupation <span style="color:#EF4444;">*</span></label>
+              <select class="field-select">
+                <option selected>Employed</option>
+                <option>Self-employed</option>
+                <option>Unemployed</option>
+                <option>Retired</option>
+                <option>Homemaker</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 2: Your Diabetes ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-rose">
+            <svg width="18" height="18" fill="none" stroke="#F43F5E" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">Your Diabetes</p>
+            <p class="section-desc">History and other health conditions</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">How long have you had diabetes? <span style="color:#EF4444;">*</span></label>
+              <div style="display:flex;gap:8px;">
+                <input type="number" class="field-input" placeholder="Duration" value="27" style="flex:1;">
+                <select class="field-select" style="width:auto;flex-shrink:0;">
+                  <option selected>Months</option>
+                  <option>Years</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Distance to your clinic/hospital <span style="color:#EF4444;">*</span></label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="number" class="field-input" placeholder="e.g. 4" value="4" style="flex:1;">
+                <span style="font-size:13px;color:#64748B;flex-shrink:0;">km</span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="field-divider">
+
+          <p style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Do you have any of these other conditions?</p>
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">High blood pressure (Hypertension)</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn yes-active">Yes</button>
+                <button type="button" class="toggle-btn">No</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">How many other conditions?</label>
+              <select class="field-select">
+                <option>0</option>
+                <option selected>1 (Hypertension)</option>
+                <option>2</option>
+                <option>3 or more</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="field-divider">
+
+          <div class="field-grid-2">
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Was a new medication added at your last visit?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn">Yes</button>
+                <button type="button" class="toggle-btn no-active">No</button>
+              </div>
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Do you get counselling about your diabetes or drugs?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn yes-active">Yes — from my doctor</button>
+                <button type="button" class="toggle-btn">No</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 3: Lifestyle ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-green">
+            <svg width="18" height="18" fill="none" stroke="#16A34A" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">Lifestyle</p>
+            <p class="section-desc">Your daily habits that affect blood sugar</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">Are you following a diabetic diet?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn yes-active">Yes</button>
+                <button type="button" class="toggle-btn">No</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Do you exercise regularly?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn yes-active">Yes</button>
+                <button type="button" class="toggle-btn">No</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Do you sleep adequately (7+ hrs)?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn">Yes</button>
+                <button type="button" class="toggle-btn no-active">No</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Do you smoke or drink alcohol?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn">Yes</button>
+                <button type="button" class="toggle-btn no-active">No</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">How many times per month do you check your blood sugar at home?</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <input type="range" min="0" max="30" value="4" style="flex:1;accent-color:#4F46E5;">
+              <span style="font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;color:#4F46E5;min-width:40px;text-align:right;">4×</span>
+            </div>
+            <p style="font-size:11px;color:#94A3B8;margin-top:5px;">0 = Never · 30 = Daily</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 4: Medications (pre-filled) ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-purple">
+            <svg width="18" height="18" fill="none" stroke="#7C3AED" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">Your Medications</p>
+            <p class="section-desc">Auto-filled from your medications profile</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="prefilled-notice">
+            <svg width="16" height="16" fill="none" stroke="#4F46E5" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p><strong>Auto-filled</strong> from your saved medications. Go to <strong>Medications</strong> to add or update them.</p>
+          </div>
+
+          <div class="med-prefilled-row">
+            <div>
+              <p class="med-pf-name">Metformin 500mg</p>
+              <p class="med-pf-detail">2 doses per day · Morning + Evening</p>
+            </div>
+            <span class="med-pf-class">Biguanide</span>
+          </div>
+
+          <div class="med-prefilled-row">
+            <div>
+              <p class="med-pf-name">Glipizide 5mg</p>
+              <p class="med-pf-detail">1 dose per day · Morning</p>
+            </div>
+            <span class="med-pf-class">Sulfonylurea</span>
+          </div>
+
+          <div class="med-prefilled-row">
+            <div>
+              <p class="med-pf-name">Atorvastatin 10mg</p>
+              <p class="med-pf-detail">1 dose per day · Night</p>
+            </div>
+            <span class="med-pf-class" style="background:#F5F3FF;color:#7C3AED;border-color:#DDD6FE;">Statin</span>
+          </div>
+
+          <hr class="field-divider">
+
+          <div class="field-grid-2">
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Total pills taken per day</label>
+              <input type="number" class="field-input" value="4" style="background:#F8FAFF;">
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Total doses per day</label>
+              <input type="number" class="field-input" value="4" style="background:#F8FAFF;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 5: Lab Results (Optional) ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-amber">
+            <svg width="18" height="18" fill="none" stroke="#D97706" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">
+              Lab Results
+              <span class="optional-section-label">Optional</span>
+            </p>
+            <p class="section-desc">From your most recent blood test — leave blank if unknown</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid-3">
+            <div class="field-group">
+              <label class="field-label">Fasting Blood Sugar (FBS)</label>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" class="field-input" placeholder="e.g. 126" style="flex:1;">
+                <span style="font-size:12px;color:#94A3B8;flex-shrink:0;">mg/dL</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">HbA1c</label>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" class="field-input" placeholder="e.g. 7.8" value="7.8" step="0.1" style="flex:1;">
+                <span style="font-size:12px;color:#94A3B8;flex-shrink:0;">%</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Random Blood Sugar (RBS)</label>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" class="field-input" placeholder="e.g. 178" style="flex:1;">
+                <span style="font-size:12px;color:#94A3B8;flex-shrink:0;">mg/dL</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">How long ago was your last blood test?</label>
+            <div style="display:flex;gap:8px;max-width:340px;">
+              <input type="number" class="field-input" placeholder="e.g. 2" value="2" style="flex:1;">
+              <select class="field-select" style="flex:1;">
+                <option selected>Months ago</option>
+                <option>Weeks ago</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 6: Your Situation ── -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-icon icon-blue">
+            <svg width="18" height="18" fill="none" stroke="#4F46E5" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </div>
+          <div>
+            <p class="section-title">Your Situation</p>
+            <p class="section-desc">Financial and social factors that affect adherence</p>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field-grid-2">
+            <div class="field-group">
+              <label class="field-label">Monthly household income level <span style="color:#EF4444;">*</span></label>
+              <select class="field-select">
+                <option>Low (under ₹10,000/month)</option>
+                <option selected>Medium (₹10,000–₹30,000)</option>
+                <option>High (above ₹30,000/month)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Monthly spending on medications <span style="color:#EF4444;">*</span></label>
+              <select class="field-select">
+                <option selected>Low (under ₹200/month)</option>
+                <option>Medium (₹200–₹500)</option>
+                <option>High (above ₹500/month)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-grid-2">
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Do you spend ₹250 or more per month on consultations?</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn">Yes</button>
+                <button type="button" class="toggle-btn no-active">No</button>
+              </div>
+            </div>
+            <div class="field-group" style="margin-bottom:0;">
+              <label class="field-label">Where do you live?</label>
+              <select class="field-select">
+                <option selected>Rural / Village</option>
+                <option>Urban / City</option>
+                <option>Tribal area</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-area">
+        <div class="submit-note">
+          <strong>All required fields filled.</strong> The model uses 60+ features — your answers above cover the most important ones.
+        </div>
+        <button type="submit" class="btn-submit">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+          </svg>
+          Get My Risk Score →
+        </button>
+      </div>
+
+      <!-- Inline result (shown after submit) -->
+      <div class="result-preview">
+        <div>
+          <p class="result-label">Non-Adherence Probability</p>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <span class="result-big">62.3</span>
+            <span class="result-pct">%</span>
+          </div>
+          <p style="font-size:12px;color:#818CF8;margin-top:4px;">Assessed: 27 June 2026 · Calibrated RF</p>
+          <div class="result-verdict">⚠ You are at risk of missing medications</div>
+        </div>
+        <div class="result-breakdown">
+          <div class="result-breakdown-item">
+            <p class="result-breakdown-label">Adherent</p>
+            <p class="result-breakdown-val" style="color:#34D399;">37.7%</p>
+          </div>
+          <div class="result-breakdown-item">
+            <p class="result-breakdown-label">Non-Adherent</p>
+            <p class="result-breakdown-val" style="color:#F87171;">62.3%</p>
+          </div>
+          <a href="#" style="display:inline-block;margin-top:8px;font-size:12px;color:#818CF8;text-decoration:none;border:1px solid #2D2A6E;padding:4px 12px;border-radius:6px;">Full report →</a>
+        </div>
+      </div>
+
+    </form>
+  </main>
+</body>
+</html>

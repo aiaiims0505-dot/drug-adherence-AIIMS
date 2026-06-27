@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DA-AIMS — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; min-height: 100vh; display: flex; background: #F0F4FF; }
+
+    /* Left panel */
+    .panel-left {
+      width: 44%;
+      background: #1E1B4B;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .deco-circle-1 {
+      position: absolute; top: -80px; right: -80px;
+      width: 320px; height: 320px; border-radius: 50%;
+      background: rgba(79,70,229,0.12); pointer-events: none;
+    }
+    .deco-circle-2 {
+      position: absolute; bottom: -100px; left: -60px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: rgba(99,102,241,0.08); pointer-events: none;
+    }
+    .left-content { position: relative; z-index: 1; }
+    .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 72px; }
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: #4F46E5; display: flex; align-items: center; justify-content: center;
+    }
+    .logo-name { font-size: 20px; font-weight: 700; color: white; letter-spacing: -0.02em; line-height: 1; }
+    .logo-sub { font-size: 10px; color: #818CF8; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+    .headline {
+      font-size: 34px; font-weight: 700; color: white;
+      line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .subhead { font-size: 15px; color: #A5B4FC; line-height: 1.65; margin-bottom: 52px; }
+
+    .feature-list { display: flex; flex-direction: column; gap: 20px; }
+    .feature-item { display: flex; align-items: flex-start; gap: 14px; }
+    .feature-icon-wrap {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(79,70,229,0.28); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .feature-title { font-size: 14px; font-weight: 600; color: white; margin-bottom: 3px; }
+    .feature-desc { font-size: 13px; color: #818CF8; line-height: 1.5; }
+
+    .research-badge {
+      position: relative; z-index: 1;
+      font-size: 10px; font-family: 'JetBrains Mono', monospace;
+      color: #6366F1; background: #2D2A6E; border: 1px solid #3730A3;
+      padding: 5px 12px; border-radius: 4px; letter-spacing: 0.1em;
+      text-transform: uppercase; display: inline-block;
+    }
+
+    /* Right panel */
+    .panel-right {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 48px; background: #F0F4FF;
+    }
+    .form-box { width: 100%; max-width: 380px; }
+
+    /* Tab switcher */
+    .tab-bar { display: flex; background: #E2E8F0; border-radius: 10px; padding: 4px; margin-bottom: 36px; }
+    .tab-btn {
+      flex: 1; padding: 9px; border-radius: 7px; border: none;
+      font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { background: white; color: #1E1B4B; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .tab-btn:not(.active) { background: transparent; color: #64748B; }
+
+    .form-title { font-size: 26px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .form-sub { font-size: 14px; color: #64748B; margin-bottom: 28px; }
+
+    .field-label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 7px; }
+    .field-input {
+      display: block; width: 100%;
+      border: 1.5px solid #CBD5E1; border-radius: 9px;
+      padding: 11px 14px; font-size: 14px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: #ffffff; color: #0F172A;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field-input:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.12); }
+    .field-group { margin-bottom: 18px; }
+
+    .forgot-row { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+    .forgot-link { font-size: 13px; color: #4F46E5; text-decoration: none; }
+    .forgot-link:hover { text-decoration: underline; }
+
+    .btn-primary {
+      display: block; width: 100%; padding: 13px 20px;
+      background: #4F46E5; color: white; border: none; border-radius: 9px;
+      font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #4338CA; }
+
+    .register-link { text-align: center; font-size: 13px; color: #64748B; margin-top: 22px; }
+    .register-link a { color: #4F46E5; font-weight: 500; text-decoration: none; }
+
+    .divider { border-top: 1px solid #E2E8F0; margin-top: 32px; padding-top: 20px; }
+    .divider-note { text-align: center; font-size: 12px; color: #94A3B8; }
+
+    /* Role selector */
+    .role-selector { display: flex; gap: 10px; margin-bottom: 18px; }
+    .role-option {
+      flex: 1; padding: 10px 12px; border-radius: 8px;
+      border: 1.5px solid #E2E8F0; background: white; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 500; color: #374151;
+      transition: all 0.15s;
+    }
+    .role-option.selected { border-color: #4F46E5; background: #EEF2FF; color: #4F46E5; }
+    .role-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #CBD5E1; display: flex; align-items: center; justify-content: center; }
+    .role-dot.checked { background: #4F46E5; border-color: #4F46E5; }
+    .role-dot.checked::after { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: white; }
+  </style>
+</head>
+<body>
+  <!-- Left Panel -->
+  <div class="panel-left">
+    <div class="deco-circle-1"></div>
+    <div class="deco-circle-2"></div>
+
+    <div class="left-content">
+      <!-- Logo -->
+      <div class="logo-row">
+        <div class="logo-icon">
+          <svg width="22" height="22" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+        <div>
+          <p class="logo-name">DA-AIMS</p>
+          <p class="logo-sub">Drug Adherence AI</p>
+        </div>
+      </div>
+
+      <h1 class="headline">Better adherence.<br>Better outcomes.</h1>
+      <p class="subhead">An AI-powered monitoring system helping Type 2 Diabetes patients stay on track with medications, lifestyle, and education.</p>
+
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon-wrap">
+            <svg width="16" height="16" fill="none" stroke="#A5B4FC" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+          </div>
+          <div>
+            <p class="feature-title">Medication reminders</p>
+            <p class="feature-desc">Browser push and simulated SMS alerts for every dose, every day</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap">
+            <svg width="16" height="16" fill="none" stroke="#A5B4FC" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="feature-title">AI risk assessment</p>
+            <p class="feature-desc">Calibrated Random Forest model — AUC 0.802, F2-score 0.833</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap">
+            <svg width="16" height="16" fill="none" stroke="#A5B4FC" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <div>
+            <p class="feature-title">Education hub</p>
+            <p class="feature-desc">Curated articles on diet, adherence strategies, and diabetes management</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <span class="research-badge">Research Demo · POC · 2026</span>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel-right">
+    <div class="form-box">
+      <div class="tab-bar">
+        <button class="tab-btn active">Sign in</button>
+        <button class="tab-btn">Register</button>
+      </div>
+
+      <h2 class="form-title">Welcome back</h2>
+      <p class="form-sub">Sign in to your DA-AIMS account</p>
+
+      <form>
+        <div class="field-group">
+          <label class="field-label">Email address</label>
+          <input type="email" class="field-input" placeholder="you@example.com" value="priya.sharma@gmail.com">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input type="password" class="field-input" placeholder="••••••••" value="••••••••">
+        </div>
+
+        <div style="margin-bottom:18px;">
+          <label class="field-label">I am a</label>
+          <div class="role-selector">
+            <div class="role-option selected">
+              <div class="role-dot checked"></div>
+              Patient
+            </div>
+            <div class="role-option">
+              <div class="role-dot"></div>
+              Doctor
+            </div>
+          </div>
+        </div>
+
+        <div class="forgot-row">
+          <a href="#" class="forgot-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+
+      <p class="register-link">Don't have an account? <a href="#">Register here</a></p>
+
+      <div class="divider">
+        <p class="divider-note">Trained on 295 T2D patients · Tertiary care setting</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

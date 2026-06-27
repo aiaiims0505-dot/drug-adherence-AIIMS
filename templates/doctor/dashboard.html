@@ -1,0 +1,141 @@
+{% extends "base_doctor.html" %}
+{% block title %}All Patients{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat-card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat-label { font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; line-height: 1; }
+  .risk-bar { height: 5px; border-radius: 3px; background: #F1F5F9; margin-top: 8px; overflow: hidden; }
+  .risk-fill { height: 5px; border-radius: 3px; }
+  .table-wrap { background: white; border-radius: 14px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .table-head { padding: 14px 20px; border-bottom: 1px solid #F1F5F9; display: flex; align-items: center; justify-content: space-between; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { padding: 10px 16px; text-align: left; font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; background: #F8FAFC; border-bottom: 1px solid #F1F5F9; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  tbody td { padding: 13px 16px; border-bottom: 1px solid #F8FAFC; font-size: 13px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #FAFBFF; }
+  .patient-name { font-weight: 600; color: #1E293B; font-size: 14px; }
+  .patient-email { font-size: 11px; color: #94A3B8; margin-top: 1px; }
+  .avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 10px; vertical-align: middle; flex-shrink: 0; }
+  .mono-sm { font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+  <p class="page-title">All Patients</p>
+  <form method="post" action="/doctor/send-reminders" onsubmit="return confirm('Send SMS reminders to all high-risk patients?');">
+    <button type="submit" class="btn-primary">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      Send Reminders
+    </button>
+  </form>
+</div>
+<p class="page-sub">Monitor all registered patients and their AI risk scores at a glance.</p>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <p class="stat-label">Total Patients</p>
+    <p class="stat-value" style="color:#0F172A;">{{ stats.total }}</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">High Risk</p>
+    <p class="stat-value" style="color:#DC2626;">{{ stats.high_risk }}</p>
+    <div class="risk-bar"><div class="risk-fill" style="width:{{ (stats.high_risk / (stats.total or 1) * 100) | round }}%;background:#DC2626;"></div></div>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">Assessed Today</p>
+    <p class="stat-value" style="color:#4F46E5;">{{ stats.assessed_today }}</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">Reminders Sent</p>
+    <p class="stat-value" style="color:#D97706;">{{ stats.sms_sent }}</p>
+  </div>
+</div>
+
+<!-- Patient table -->
+<div class="table-wrap">
+  <div class="table-head">
+    <p style="font-size:14px;font-weight:700;color:#1E293B;">Patient List</p>
+    <p class="mono-sm" style="color:#94A3B8;">{{ patients | length }} patients</p>
+  </div>
+  {% if patients %}
+  <table>
+    <thead>
+      <tr>
+        <th>Patient</th>
+        <th>Last Assessment</th>
+        <th>Risk Score</th>
+        <th>Adherence (7d)</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in patients %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;">
+            <span class="avatar-sm">{{ p.name[:2].upper() }}</span>
+            <div>
+              <p class="patient-name">{{ p.name }}</p>
+              <p class="patient-email">{{ p.email }}</p>
+            </div>
+          </div>
+        </td>
+        <td>
+          {% if p.last_assessment_date %}
+            <span class="mono-sm" style="color:#64748B;">{{ p.last_assessment_date[:10] }}</span>
+          {% else %}
+            <span style="color:#CBD5E1;font-size:12px;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.p_nonadherent is not none %}
+            <span class="mono-sm" style="font-weight:700;color:{% if p.risk_tier == 'HIGH' %}#DC2626{% elif p.risk_tier == 'MODERATE' %}#D97706{% else %}#16A34A{% endif %};">
+              {{ p.p_nonadherent | round(1) }}%
+            </span>
+          {% else %}
+            <span style="color:#CBD5E1;font-size:12px;">No data</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.week_taken is not none %}
+            <span class="mono-sm" style="color:#4F46E5;font-weight:700;">
+              {{ p.week_pct | round | int }}%
+            </span>
+            <span class="mono-sm" style="color:#94A3B8;"> ({{ p.week_taken }}/{{ p.week_total }})</span>
+          {% else %}
+            <span style="color:#CBD5E1;font-size:12px;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.p_nonadherent is not none %}
+            {% if p.risk_tier == 'HIGH' %}
+              <span class="badge badge-red">⚠ High Risk</span>
+            {% elif p.risk_tier == 'MODERATE' %}
+              <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;">⚠ Moderate</span>
+            {% else %}
+              <span class="badge badge-green">✓ Low Risk</span>
+            {% endif %}
+          {% else %}
+            <span class="badge" style="background:#F1F5F9;color:#94A3B8;border:1px solid #E2E8F0;">Not assessed</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right;">
+          <a href="/doctor/patient/{{ p.id }}" class="btn-outline" style="font-size:12px;padding:7px 12px;">View →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:40px 20px;">
+    <p style="font-size:14px;color:#94A3B8;">No patients registered yet. Patients appear here after signing up.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

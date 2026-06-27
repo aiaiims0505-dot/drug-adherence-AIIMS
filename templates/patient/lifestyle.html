@@ -1,0 +1,117 @@
+{% extends "base_patient.html" %}
+{% block title %}Lifestyle Log{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+  .toggle-group { display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid #E2E8F0; width: fit-content; }
+  .toggle-radio { display: none; }
+  .toggle-lbl { padding: 8px 22px; font-size: 13px; font-weight: 500; color: #64748B; cursor: pointer; background: white; transition: all 0.12s; }
+  .toggle-lbl:not(:last-child) { border-right: 1.5px solid #E2E8F0; }
+  .toggle-radio:checked + .toggle-lbl { background: #4F46E5; color: white; }
+  .history-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot-diet { background: #4F46E5; }
+  .dot-ex { background: #10B981; }
+  .dot-sleep { background: #F59E0B; }
+  .dot-no { background: #F1F5F9; border: 1px solid #E2E8F0; }
+</style>
+
+<p class="page-title">Lifestyle Log</p>
+<p class="page-sub">{{ today }} — Track your daily habits. These signals supplement your medication adherence data.</p>
+
+<!-- Today's form -->
+<div class="card card-pad" style="margin-bottom:20px;">
+  <p class="section-label">Log Today</p>
+  {% if today_log %}
+  <div class="flash flash-success" style="margin-bottom:16px;">✓ Today's lifestyle already logged. Update it below.</div>
+  {% endif %}
+  <form method="post" action="/patient/lifestyle">
+    <div class="field-group">
+      <label class="field-label">Did you follow your diabetic diet today? <span style="color:#EF4444;">*</span></label>
+      <div class="toggle-group">
+        <input type="radio" name="on_diet" id="diet-yes" value="1" class="toggle-radio" {% if today_log and today_log.on_diet %}checked{% endif %} required>
+        <label for="diet-yes" class="toggle-lbl">Yes</label>
+        <input type="radio" name="on_diet" id="diet-no" value="0" class="toggle-radio" {% if today_log and not today_log.on_diet %}checked{% endif %}>
+        <label for="diet-no" class="toggle-lbl">No</label>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Did you exercise today? <span style="color:#EF4444;">*</span></label>
+      <div class="toggle-group">
+        <input type="radio" name="exercised" id="ex-yes" value="1" class="toggle-radio" {% if today_log and today_log.exercised %}checked{% endif %} required>
+        <label for="ex-yes" class="toggle-lbl">Yes</label>
+        <input type="radio" name="exercised" id="ex-no" value="0" class="toggle-radio" {% if today_log and not today_log.exercised %}checked{% endif %}>
+        <label for="ex-no" class="toggle-lbl">No</label>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Did you sleep adequately (7–9 hours)? <span style="color:#EF4444;">*</span></label>
+      <div class="toggle-group">
+        <input type="radio" name="slept_adequately" id="sl-yes" value="1" class="toggle-radio" {% if today_log and today_log.slept_adequately %}checked{% endif %} required>
+        <label for="sl-yes" class="toggle-lbl">Yes</label>
+        <input type="radio" name="slept_adequately" id="sl-no" value="0" class="toggle-radio" {% if today_log and not today_log.slept_adequately %}checked{% endif %}>
+        <label for="sl-no" class="toggle-lbl">No</label>
+      </div>
+    </div>
+    <div class="grid-2" style="gap:16px;">
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Blood glucose reading (mg/dL) <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+        <input type="number" name="glucose_reading" class="field-input" placeholder="e.g. 130" min="40" max="600" step="1" value="{{ today_log.glucose_reading or '' if today_log else '' }}">
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Notes <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+        <input type="text" name="notes" class="field-input" placeholder="Any observations today" value="{{ today_log.notes or '' if today_log else '' }}">
+      </div>
+    </div>
+    <button type="submit" class="btn-primary" style="margin-top:18px;">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      Save Today's Log
+    </button>
+  </form>
+</div>
+
+<!-- 7-day history -->
+{% if history %}
+<div class="card card-pad">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <p class="section-label" style="margin-bottom:0;">Last 7 Days</p>
+    <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:#64748B;">
+      <span><span class="history-dot dot-diet"></span> Diet</span>
+      <span><span class="history-dot dot-ex"></span> Exercise</span>
+      <span><span class="history-dot dot-sleep"></span> Sleep</span>
+    </div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:8px 10px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Date</th>
+        <th style="text-align:center;padding:8px 10px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Diet</th>
+        <th style="text-align:center;padding:8px 10px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Exercise</th>
+        <th style="text-align:center;padding:8px 10px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Sleep</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.08em;background:#F8FAFC;border-bottom:1px solid #F1F5F9;">Glucose</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in history %}
+      <tr style="border-bottom:1px solid #F8FAFC;">
+        <td style="padding:10px;color:#64748B;font-family:'JetBrains Mono',monospace;font-size:12px;">{{ entry.date }}</td>
+        <td style="padding:10px;text-align:center;">
+          {% if entry.on_diet %}<span style="color:#16A34A;font-size:16px;">✓</span>{% else %}<span style="color:#F1F5F9;font-size:16px;">–</span>{% endif %}
+        </td>
+        <td style="padding:10px;text-align:center;">
+          {% if entry.exercised %}<span style="color:#10B981;font-size:16px;">✓</span>{% else %}<span style="color:#F1F5F9;font-size:16px;">–</span>{% endif %}
+        </td>
+        <td style="padding:10px;text-align:center;">
+          {% if entry.slept_adequately %}<span style="color:#F59E0B;font-size:16px;">✓</span>{% else %}<span style="color:#F1F5F9;font-size:16px;">–</span>{% endif %}
+        </td>
+        <td style="padding:10px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#4F46E5;font-weight:700;">
+          {% if entry.glucose_reading %}{{ entry.glucose_reading | int }}<span style="font-weight:400;color:#94A3B8;"> mg/dL</span>{% else %}<span style="color:#E2E8F0;">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base_patient.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+  .notif-card { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .push-status { display: flex; align-items: center; gap: 10px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .status-dot-green { background: #22C55E; }
+  .status-dot-gray { background: #CBD5E1; }
+  .sms-row { padding: 12px 0; border-bottom: 1px solid #F1F5F9; display: flex; align-items: flex-start; gap: 12px; }
+  .sms-row:last-of-type { border-bottom: none; }
+  .sms-icon { width: 32px; height: 32px; border-radius: 8px; background: #EEF2FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sms-msg { font-size: 13px; color: #374151; line-height: 1.5; }
+  .sms-meta { font-size: 11px; color: #94A3B8; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+</style>
+
+<p class="page-title">Notifications</p>
+<p class="page-sub">Manage reminders and see your message history.</p>
+
+<!-- Push notifications -->
+<div class="notif-card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div>
+      <p style="font-size:15px;font-weight:700;color:#1E293B;margin-bottom:4px;">Browser Push Notifications</p>
+      <p style="font-size:13px;color:#64748B;">Get reminders in your browser when it's time to take a dose.</p>
+    </div>
+    <div class="push-status">
+      <span class="status-dot {% if push_enabled %}status-dot-green{% else %}status-dot-gray{% endif %}"></span>
+      <span style="font-size:13px;font-weight:500;color:{% if push_enabled %}#16A34A{% else %}#94A3B8{% endif %};">
+        {% if push_enabled %}Enabled{% else %}Disabled{% endif %}
+      </span>
+    </div>
+  </div>
+  {% if push_enabled %}
+    <button onclick="unsubscribePush()" class="btn-outline" style="font-size:13px;">Disable Push Reminders</button>
+  {% else %}
+    <button onclick="subscribePush()" class="btn-primary" style="font-size:13px;">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      Enable Push Reminders
+    </button>
+  {% endif %}
+  <p id="push-feedback" style="font-size:12px;color:#94A3B8;margin-top:10px;display:none;"></p>
+</div>
+
+<!-- SMS history -->
+<div class="notif-card">
+  <p class="section-label">SMS Message History</p>
+  {% if sms_log %}
+    {% for sms in sms_log %}
+    <div class="sms-row">
+      <div class="sms-icon">
+        <svg width="16" height="16" fill="none" stroke="#4F46E5" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      </div>
+      <div>
+        <p class="sms-msg">{{ sms.message }}</p>
+        <p class="sms-meta">{{ sms.sent_at[:16] }} · {{ sms.to_phone or 'on file' }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;padding:24px 0;">
+      <p style="font-size:13px;color:#94A3B8;">No SMS messages sent yet.</p>
+      <p style="font-size:12px;color:#CBD5E1;margin-top:4px;">Messages are sent when your doctor flags a reminder.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% block extra_scripts %}
+<script>
+  async function subscribePush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      document.getElementById('push-feedback').textContent = 'Push notifications are not supported in this browser.';
+      document.getElementById('push-feedback').style.display = 'block';
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.register('/static/sw.js');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        document.getElementById('push-feedback').textContent = 'Permission denied. Allow notifications in browser settings.';
+        document.getElementById('push-feedback').style.display = 'block';
+        return;
+      }
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('{{ vapid_public_key }}')
+      });
+      const res = await fetch('/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub)
+      });
+      if (res.ok) window.location.reload();
+    } catch (e) {
+      document.getElementById('push-feedback').textContent = 'Could not enable push: ' + e.message;
+      document.getElementById('push-feedback').style.display = 'block';
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  async function unsubscribePush() {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) {
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    }
+    await fetch('/notifications/unsubscribe', { method: 'POST' });
+    window.location.reload();
+  }
+</script>
+{% endblock %}
+{% endblock %}

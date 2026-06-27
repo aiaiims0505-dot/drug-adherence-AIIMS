@@ -1,0 +1,191 @@
+{% extends "base_doctor.html" %}
+{% block title %}{{ patient.name }}{% endblock %}
+
+{% block content %}
+<style>
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #64748B; text-decoration: none; font-weight: 500; margin-bottom: 18px; }
+  .back-link:hover { color: #4F46E5; }
+  .patient-header { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 22px 26px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+  .patient-avatar { width: 52px; height: 52px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .risk-big { font-size: 52px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; line-height: 1; }
+  .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .history-table th { padding: 8px 12px; text-align: left; font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; background: #F8FAFC; border-bottom: 1px solid #F1F5F9; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .history-table td { padding: 10px 12px; border-bottom: 1px solid #F8FAFC; }
+  .history-table tr:last-child td { border-bottom: none; }
+  .dose-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .dose-cell { width: 22px; height: 22px; border-radius: 4px; display: inline-block; }
+  .dose-taken { background: #BBF7D0; }
+  .dose-missed { background: #FECACA; }
+  .dose-none { background: #F1F5F9; }
+</style>
+
+<a href="/doctor/dashboard" class="back-link">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+  All Patients
+</a>
+
+<!-- Patient header -->
+<div class="patient-header">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="patient-avatar">{{ patient.name[:2].upper() }}</div>
+    <div>
+      <p style="font-size:19px;font-weight:700;color:#0F172A;letter-spacing:-0.02em;margin-bottom:3px;">{{ patient.name }}</p>
+      <p style="font-size:13px;color:#64748B;">{{ patient.email }}{% if patient.phone %} · {{ patient.phone }}{% endif %}</p>
+      <p style="font-size:11px;color:#94A3B8;margin-top:2px;font-family:'JetBrains Mono',monospace;">Patient since {{ patient.created_at[:10] }}</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    {% if patient.risk_tier == 'HIGH' %}
+    <span class="badge badge-red" style="font-size:12px;">⚠ High Risk</span>
+    {% elif patient.risk_tier == 'MODERATE' %}
+    <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-size:12px;">⚠ Moderate</span>
+    {% elif patient.p_nonadherent is not none %}
+    <span class="badge badge-green" style="font-size:12px;">✓ Low Risk</span>
+    {% endif %}
+    <form method="post" action="/doctor/send-reminder/{{ patient.id }}">
+      <button type="submit" class="btn-outline" style="font-size:13px;">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        Send Reminder
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- Risk score card -->
+  <div class="card card-dark card-pad">
+    <p class="section-label" style="color:#818CF8;">Current Risk Score</p>
+    {% if patient.p_nonadherent is not none %}
+    <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
+      {% set rc = '#F87171' if patient.risk_tier == 'HIGH' else ('#FBBF24' if patient.risk_tier == 'MODERATE' else '#34D399') %}
+      <span class="risk-big" style="color:{{ rc }};">{{ patient.p_nonadherent | round(1) }}</span>
+      <span style="font-size:22px;font-family:'JetBrains Mono',monospace;font-weight:700;color:{{ rc }};">%</span>
+    </div>
+    <p style="font-size:12px;color:#818CF8;margin-bottom:10px;">Non-adherence probability</p>
+    {% if patient.risk_tier == 'HIGH' %}
+      <span class="badge badge-red">⚠ High Risk</span>
+    {% elif patient.risk_tier == 'MODERATE' %}
+      <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;">⚠ Moderate Risk</span>
+    {% else %}
+      <span class="badge" style="background:rgba(52,211,153,0.15);color:#34D399;border:1px solid rgba(52,211,153,0.3);">✓ Low Risk</span>
+    {% endif %}
+    {% else %}
+    <p style="font-size:28px;font-weight:700;color:#475569;margin-bottom:8px;">—</p>
+    <p style="font-size:12px;color:#475569;">Patient hasn't run an assessment yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Weekly adherence -->
+  <div class="card card-pad">
+    <p class="section-label">7-Day Dose Adherence</p>
+    {% if week_taken is not none %}
+    <p style="font-size:28px;font-weight:700;color:#4F46E5;font-family:'JetBrains Mono',monospace;margin-bottom:4px;">
+      {{ week_pct | round | int }}%
+    </p>
+    <p style="font-size:12px;color:#64748B;margin-bottom:14px;">{{ week_taken }} of {{ week_total }} doses taken</p>
+    {% else %}
+    <p style="font-size:28px;font-weight:700;color:#CBD5E1;margin-bottom:8px;">—</p>
+    <p style="font-size:12px;color:#94A3B8;margin-bottom:14px;">No dose logs yet.</p>
+    {% endif %}
+    <!-- Dose cells -->
+    {% if dose_grid %}
+    <div class="dose-grid">
+      {% for cell in dose_grid %}
+      <span class="dose-cell {% if cell == 'taken' %}dose-taken{% elif cell == 'missed' %}dose-missed{% else %}dose-none{% endif %}" title="{{ cell }}"></span>
+      {% endfor %}
+    </div>
+    <p style="font-size:10px;color:#CBD5E1;margin-top:6px;font-family:'JetBrains Mono',monospace;">Last 30 doses · green=taken, red=missed</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Assessment history -->
+<div class="card card-pad" style="margin-bottom:16px;">
+  <p class="section-label">Assessment History</p>
+  {% if assessments %}
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Risk Score</th>
+        <th>Verdict</th>
+        <th>Drug Class</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in assessments %}
+      <tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748B;">{{ a.created_at[:10] }}</td>
+        <td>
+          {% set ac = '#DC2626' if a.p_nonadherent > 55 else ('#D97706' if a.p_nonadherent >= 47 else '#16A34A') %}
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:{{ ac }};">
+            {{ a.p_nonadherent | round(1) }}%
+          </span>
+        </td>
+        <td>
+          {% if a.p_nonadherent > 55 %}
+            <span class="badge badge-red" style="font-size:10px;">⚠ High</span>
+          {% elif a.p_nonadherent >= 47 %}
+            <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-size:10px;">⚠ Moderate</span>
+          {% else %}
+            <span class="badge badge-green" style="font-size:10px;">✓ Low</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set rj = a.result_json | tojson if a.result_json else '{}' %}
+          <span style="font-size:12px;color:#64748B;">{{ a.drug_class or '—' }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="font-size:13px;color:#94A3B8;text-align:center;padding:16px 0;">No assessments on record.</p>
+  {% endif %}
+</div>
+
+<!-- Lifestyle summary -->
+{% if lifestyle %}
+<div class="card card-pad" style="margin-bottom:16px;">
+  <p class="section-label">Lifestyle (Last 7 Days)</p>
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Diet</th>
+        <th>Exercise</th>
+        <th>Sleep</th>
+        <th>Glucose</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in lifestyle %}
+      <tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748B;">{{ entry.date }}</td>
+        <td>{% if entry.on_diet %}<span style="color:#16A34A;">✓</span>{% else %}<span style="color:#FECACA;">✗</span>{% endif %}</td>
+        <td>{% if entry.exercised %}<span style="color:#10B981;">✓</span>{% else %}<span style="color:#FECACA;">✗</span>{% endif %}</td>
+        <td>{% if entry.slept_adequately %}<span style="color:#F59E0B;">✓</span>{% else %}<span style="color:#FECACA;">✗</span>{% endif %}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#4F46E5;font-weight:700;">
+          {% if entry.glucose_reading %}{{ entry.glucose_reading | int }} mg/dL{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- SMS log for this patient -->
+{% if sms_log %}
+<div class="card card-pad">
+  <p class="section-label">SMS History</p>
+  {% for sms in sms_log %}
+  <div style="padding:10px 0;border-bottom:1px solid #F1F5F9;font-size:13px;color:#374151;">
+    <p>{{ sms.message }}</p>
+    <p style="font-size:11px;color:#94A3B8;font-family:'JetBrains Mono',monospace;margin-top:2px;">{{ sms.sent_at[:16] }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

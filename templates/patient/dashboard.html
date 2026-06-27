@@ -1,0 +1,212 @@
+{% extends "base_patient.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
+  .greeting { font-size: 23px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .greeting-sub { font-size: 13px; color: #64748B; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .stat-card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat-label { font-size: 10px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; margin-bottom: 7px; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; line-height: 1; }
+  .stat-sub { font-size: 12px; color: #94A3B8; margin-top: 5px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .med-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #F1F5F9; }
+  .med-row:last-of-type { border-bottom: none; }
+  .med-name { font-size: 14px; font-weight: 500; color: #1E293B; margin-bottom: 2px; }
+  .med-detail { font-size: 11px; color: #94A3B8; }
+  .chip { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin-left: 4px; }
+  .chip-taken { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+  .chip-pending { background: #F8FAFC; color: #94A3B8; border: 1px solid #E2E8F0; }
+  .chip-missed { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+  .ls-row { display: flex; gap: 12px; margin-top: 6px; }
+  .ls-item { text-align: center; }
+  .ls-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px; }
+  .ls-yes { background: #F0FDF4; border: 1.5px solid #BBF7D0; }
+  .ls-no { background: #FEF2F2; border: 1.5px solid #FECACA; }
+  .ls-data { background: #F0F4FF; border: 1.5px solid #C7D2FE; }
+  .ls-lbl { font-size: 10px; color: #64748B; }
+  .edu-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #F1F5F9; }
+  .edu-row:last-of-type { border-bottom: none; }
+  .edu-icon-wrap { width: 34px; height: 34px; border-radius: 8px; background: #EEF2FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .edu-title { font-size: 13px; font-weight: 500; color: #1E293B; }
+  .edu-meta { font-size: 11px; color: #818CF8; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+
+<!-- Header -->
+<div class="page-header">
+  <div>
+    <p class="greeting">Good day, {{ user.name.split()[0] }} 👋</p>
+    <p class="greeting-sub">{{ today }} · T2D Patient</p>
+  </div>
+  <a href="/patient/assessment" class="btn-primary">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+    Run Assessment
+  </a>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <p class="stat-label">Weekly Adherence</p>
+    {% set pct = ((week_taken / week_total) * 100) | round | int %}
+    <p class="stat-value" style="color:{% if pct >= 80 %}#16A34A{% elif pct >= 60 %}#D97706{% else %}#DC2626{% endif %};">{{ pct }}%</p>
+    <p class="stat-sub">{{ week_taken }} of {{ week_total }} doses taken</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">Lifestyle Streak</p>
+    <p class="stat-value" style="color:#4F46E5;">{{ streak }} <span style="font-size:16px;font-weight:500;">days</span></p>
+    <p class="stat-sub">Consecutive days logged</p>
+  </div>
+  <div class="stat-card">
+    <p class="stat-label">Risk Score</p>
+    {% if latest_assessment %}
+      {% set la_p = latest_assessment.p_nonadherent %}
+      {% set la_color = '#DC2626' if la_p > 55 else ('#D97706' if la_p >= 47 else '#16A34A') %}
+      {% set la_label = 'High Risk' if la_p > 55 else ('Moderate Risk' if la_p >= 47 else 'Low Risk') %}
+      <p class="stat-value" style="color:{{ la_color }};">{{ la_p | round(1) }}%</p>
+      <p class="stat-sub">{{ la_label }} · {{ latest_assessment.created_at[:10] }}</p>
+    {% else %}
+      <p class="stat-value" style="color:#94A3B8;">—</p>
+      <p class="stat-sub">No assessment yet</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Two columns -->
+<div class="two-col">
+  <!-- Today's medications -->
+  <div class="card card-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <p class="section-label" style="margin-bottom:0;">Today's Medications</p>
+      {% if today_pending > 0 %}
+        <span class="badge badge-amber">{{ today_pending }} pending</span>
+      {% elif today_total > 0 %}
+        <span class="badge badge-green">All done</span>
+      {% endif %}
+    </div>
+    {% if meds %}
+      {% for med in meds %}
+      <div class="med-row">
+        <div>
+          <p class="med-name">{{ med.name }}</p>
+          <p class="med-detail">{{ med.drug_class }} · {{ med.times_per_day }}× per day</p>
+        </div>
+        <div>
+          {% set status = today_logs_by_med.get(med.id) %}
+          {% if status == 'taken' %}
+            <span class="chip chip-taken">✓ Taken</span>
+          {% elif status == 'missed' %}
+            <span class="chip chip-missed">✗ Missed</span>
+          {% else %}
+            <span class="chip chip-pending">○ Pending</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      <a href="/patient/log" style="display:block;text-align:center;margin-top:16px;padding:10px;background:#EEF2FF;border-radius:8px;font-size:13px;font-weight:600;color:#4F46E5;text-decoration:none;">Log Today's Doses →</a>
+    {% else %}
+      <p style="font-size:13px;color:#94A3B8;text-align:center;padding:20px 0;">No medications added yet.</p>
+      <a href="/patient/medications" style="display:block;text-align:center;padding:10px;background:#EEF2FF;border-radius:8px;font-size:13px;font-weight:600;color:#4F46E5;text-decoration:none;">Add Medications →</a>
+    {% endif %}
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <!-- Risk card (dark) -->
+    {% if latest_assessment %}
+    <div class="card card-dark card-pad">
+      <p class="section-label" style="color:#818CF8;margin-bottom:8px;">Latest Risk Assessment</p>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+        {% set rc = '#F87171' if la_p > 55 else ('#FBBF24' if la_p >= 47 else '#34D399') %}
+        <span class="mono" style="font-size:44px;font-weight:700;letter-spacing:-0.03em;color:{{ rc }};">{{ la_p | round(1) }}</span>
+        <span class="mono" style="font-size:20px;font-weight:700;color:{{ rc }};">%</span>
+      </div>
+      <p style="font-size:11px;color:#818CF8;margin-bottom:12px;">Non-adherence probability · {{ latest_assessment.created_at[:10] }}</p>
+      {% if la_p > 55 %}
+        <span class="badge badge-red-dark">⚠ High Risk</span>
+      {% elif la_p >= 47 %}
+        <span class="badge" style="background:rgba(251,191,36,0.15);color:#FBBF24;border:1px solid rgba(251,191,36,0.3);">⚠ Moderate Risk</span>
+      {% else %}
+        <span class="badge" style="background:rgba(52,211,153,0.15);color:#34D399;border:1px solid rgba(52,211,153,0.3);">✓ Low Risk</span>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card card-pad" style="text-align:center;padding:28px 20px;">
+      <p style="font-size:13px;color:#64748B;margin-bottom:12px;">Run your first risk assessment to see your adherence score.</p>
+      <a href="/patient/assessment" class="btn-primary btn-sm" style="justify-content:center;">Start Assessment</a>
+    </div>
+    {% endif %}
+
+    <!-- Lifestyle today -->
+    {% if today_lifestyle %}
+    <div class="card card-pad" style="padding:16px 20px;">
+      <p class="section-label">Today's Lifestyle</p>
+      <div class="ls-row">
+        <div class="ls-item">
+          <div class="ls-icon {% if today_lifestyle.on_diet %}ls-yes{% else %}ls-no{% endif %}">
+            {% if today_lifestyle.on_diet %}
+              <svg width="16" height="16" fill="none" stroke="#16A34A" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            {% else %}
+              <svg width="16" height="16" fill="none" stroke="#DC2626" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            {% endif %}
+          </div>
+          <p class="ls-lbl">Diet</p>
+        </div>
+        <div class="ls-item">
+          <div class="ls-icon {% if today_lifestyle.exercised %}ls-yes{% else %}ls-no{% endif %}">
+            {% if today_lifestyle.exercised %}
+              <svg width="16" height="16" fill="none" stroke="#16A34A" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            {% else %}
+              <svg width="16" height="16" fill="none" stroke="#DC2626" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            {% endif %}
+          </div>
+          <p class="ls-lbl">Exercise</p>
+        </div>
+        <div class="ls-item">
+          <div class="ls-icon {% if today_lifestyle.slept_adequately %}ls-yes{% else %}ls-no{% endif %}">
+            {% if today_lifestyle.slept_adequately %}
+              <svg width="16" height="16" fill="none" stroke="#16A34A" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            {% else %}
+              <svg width="16" height="16" fill="none" stroke="#DC2626" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            {% endif %}
+          </div>
+          <p class="ls-lbl">Sleep</p>
+        </div>
+        {% if today_lifestyle.glucose_reading %}
+        <div class="ls-item">
+          <div class="ls-icon ls-data">
+            <span class="mono" style="font-size:10px;font-weight:700;color:#4F46E5;">{{ today_lifestyle.glucose_reading | int }}</span>
+          </div>
+          <p class="ls-lbl">mg/dL</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <a href="/patient/lifestyle" style="display:block;text-align:center;padding:16px;background:white;border-radius:12px;border:1px solid #E2E8F0;font-size:13px;font-weight:500;color:#4F46E5;text-decoration:none;">Log today's lifestyle →</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Education -->
+<div class="card card-pad">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <p class="section-label" style="margin-bottom:0;">Recommended Reading</p>
+    <a href="/patient/education" style="font-size:12px;color:#4F46E5;text-decoration:none;font-weight:500;">View all →</a>
+  </div>
+  {% for article in articles %}
+  <div class="edu-row">
+    <div class="edu-icon-wrap">
+      <svg width="16" height="16" fill="none" stroke="#4F46E5" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+    </div>
+    <div style="flex:1;">
+      <p class="edu-title">{{ article.title }}</p>
+      <p class="edu-meta">{{ article.category }} · {{ article.read_time }}</p>
+    </div>
+    <a href="/patient/education/{{ article.slug }}" style="font-size:12px;color:#4F46E5;text-decoration:none;font-weight:500;flex-shrink:0;">Read →</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

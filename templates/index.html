@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medication Adherence Predictor — DA-AIMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'Consolas', 'monospace'],
+          },
+          colors: {
+            primary: {
+              50:  '#EEF2FF',
+              100: '#E0E7FF',
+              600: '#4F46E5',
+              700: '#4338CA',
+              800: '#3730A3',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .section-card { transition: box-shadow 0.15s; }
+    .section-card:focus-within { box-shadow: 0 0 0 2px #4F46E5; }
+
+    .field-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #334155;
+      margin-bottom: 0.25rem;
+    }
+    .field-input, .field-select {
+      display: block;
+      width: 100%;
+      border: 1.5px solid #94a3b8;
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: #ffffff;
+      color: #0f172a;
+      box-sizing: border-box;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field-input:focus, .field-select:focus {
+      outline: none;
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+    .field-input::placeholder { color: #94a3b8; }
+
+    .radio-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #334155;
+      cursor: pointer;
+    }
+    .step-pill {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-width: 1px;
+      border-style: solid;
+    }
+    .optional-badge {
+      margin-left: 0.5rem;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+  </style>
+</head>
+<body class="bg-[#F5F7FF] min-h-screen">
+
+  <!-- Top Nav -->
+  <nav class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary-700 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-slate-900 leading-none">DA-AIMS</p>
+          <p class="text-xs text-slate-500">Medication Adherence Predictor</p>
+        </div>
+      </div>
+      <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+        Type 2 Diabetes · Random Forest · F2 = 0.833
+      </div>
+    </div>
+  </nav>
+
+  <!-- Section Nav Pills -->
+  <div class="sticky top-14 z-40 bg-white border-b border-slate-100 shadow-sm overflow-x-auto">
+    <div class="max-w-4xl mx-auto px-4 py-2 flex gap-2 flex-nowrap">
+      <a href="#demographics" class="step-pill border-primary-600 text-primary-600 bg-primary-50 whitespace-nowrap">1 · Demographics</a>
+      <a href="#clinical"     class="step-pill border-slate-300 text-slate-500 whitespace-nowrap">2 · Clinical</a>
+      <a href="#medications"  class="step-pill border-slate-300 text-slate-500 whitespace-nowrap">3 · Medications</a>
+      <a href="#socioeconomic" class="step-pill border-slate-300 text-slate-500 whitespace-nowrap">4 · Socioeconomic</a>
+      <a href="#lifestyle"    class="step-pill border-slate-300 text-slate-500 whitespace-nowrap">5 · Lifestyle</a>
+      <a href="#comorbidities" class="step-pill border-slate-300 text-slate-500 whitespace-nowrap">6 · Comorbidities</a>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 py-8">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <p class="font-mono text-xs font-bold text-primary-600 tracking-[0.15em] uppercase mb-2">Research Demo · Drug Adherence AI Monitoring System</p>
+      <h1 class="text-2xl font-bold text-slate-900">Patient Adherence Assessment</h1>
+      <p class="mt-2 text-sm text-slate-500 max-w-xl">
+        Enter patient characteristics to generate a medication adherence risk estimate.
+        Calibrated Random Forest trained on 295 T2D patients at a tertiary care centre.
+        Fields marked <span class="text-red-500">*</span> are required.
+      </p>
+    </div>
+
+    <form action="/predict" method="POST" id="main-form" novalidate>
+
+      <!-- ═══════════════ SECTION 1: DEMOGRAPHICS ═══════════════ -->
+      <div id="demographics" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-5 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">01</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Patient Demographics</h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Age (years) <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="age" min="18" max="100" placeholder="e.g. 55" required />
+          </div>
+
+          <div>
+            <label class="field-label">Sex <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="sex" value="0" required /> Female</label>
+              <label class="radio-label"><input type="radio" name="sex" value="1" /> Male</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Education Level <span class="text-red-500">*</span></label>
+            <select class="field-select" name="education" required>
+              <option value="" disabled selected>Select level</option>
+              <option value="0">No formal education</option>
+              <option value="1">Primary school</option>
+              <option value="2">Secondary school</option>
+              <option value="3">Higher secondary or above</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Occupation <span class="text-red-500">*</span></label>
+            <select class="field-select" name="occupation" required>
+              <option value="" disabled selected>Select occupation</option>
+              <option value="employed">Employed / Self-employed</option>
+              <option value="retired">Retired</option>
+              <option value="unemployed">Unemployed</option>
+              <option value="other">Homemaker / Student / Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Area of Residence <span class="text-red-500">*</span></label>
+            <select class="field-select" name="residence" required>
+              <option value="" disabled selected>Select area</option>
+              <option value="urban">Urban</option>
+              <option value="rural">Rural</option>
+              <option value="tribal">Tribal / Remote</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Marital Status <span class="text-red-500">*</span></label>
+            <select class="field-select" name="marital_status" required>
+              <option value="" disabled selected>Select status</option>
+              <option value="married">Married</option>
+              <option value="single">Single / Never married</option>
+              <option value="divorced">Divorced / Separated</option>
+              <option value="widowed">Widowed</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Family Size <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="family_size" min="1" max="20" placeholder="Number of members" required />
+          </div>
+
+          <div>
+            <label class="field-label">Distance to Nearest Facility (km) <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="distance_km" min="0" max="200" step="0.1" placeholder="e.g. 5.0" required />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════ SECTION 2: CLINICAL ═══════════════ -->
+      <div id="clinical" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-5 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">02</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Clinical Measurements</h2>
+          <span class="ml-auto text-slate-400 text-xs">Lab values optional — leave blank if unavailable</span>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Duration of Illness (months) <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="duration_months" min="1" max="600" placeholder="e.g. 36" required />
+          </div>
+
+          <div>
+            <label class="field-label">Time Since Last Lab Test (months) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="time_since_lab_months" min="0" max="60" step="0.5" placeholder="e.g. 3" />
+          </div>
+
+          <div>
+            <label class="field-label">Weight (kg) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="weight_kg" min="20" max="200" step="0.1" placeholder="e.g. 72.5" />
+          </div>
+
+          <div>
+            <label class="field-label">Height (cm) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="height_cm" min="100" max="220" step="0.1" placeholder="e.g. 165" />
+          </div>
+
+          <div>
+            <label class="field-label">Last HbA1c (%) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="hba1c" min="4" max="20" step="0.1" placeholder="e.g. 8.2" />
+          </div>
+
+          <div>
+            <label class="field-label">Last Fasting Blood Sugar — FBS (mg/dL) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="fbs" min="50" max="600" placeholder="e.g. 130" />
+          </div>
+
+          <div>
+            <label class="field-label">Last Random Blood Sugar — RBS (mg/dL) <span class="optional-badge">optional</span></label>
+            <input class="field-input" type="number" name="rbs" min="50" max="800" placeholder="e.g. 180" />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════ SECTION 3: MEDICATIONS ═══════════════ -->
+      <div id="medications" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-5 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">03</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Medication Details</h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Drug 1 — Class <span class="text-red-500">*</span></label>
+            <select class="field-select" name="drug1_class" required>
+              <option value="None">None / Not prescribed</option>
+              <option value="Insulin">Insulin</option>
+              <option value="Metformin">Metformin</option>
+              <option value="Sulfonylurea">Sulfonylurea (e.g. Glibenclamide)</option>
+              <option value="New_Gen_Oral">New-Gen Oral (e.g. DPP-4, GLP-1, SGLT2)</option>
+              <option value="Other_Combination">Other / Combination</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Drug 2 — Class</label>
+            <select class="field-select" name="drug2_class">
+              <option value="None">None / Not prescribed</option>
+              <option value="Insulin">Insulin</option>
+              <option value="Metformin">Metformin</option>
+              <option value="Sulfonylurea">Sulfonylurea</option>
+              <option value="New_Gen_Oral">New-Gen Oral</option>
+              <option value="Other_Combination">Other / Combination</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Drug 3 — Class</label>
+            <select class="field-select" name="drug3_class">
+              <option value="None">None / Not prescribed</option>
+              <option value="Insulin">Insulin</option>
+              <option value="Metformin">Metformin</option>
+              <option value="Sulfonylurea">Sulfonylurea</option>
+              <option value="New_Gen_Oral">New-Gen Oral</option>
+              <option value="Other_Combination">Other / Combination</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Total Pills Per Day <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="total_pills" min="0" max="30" placeholder="e.g. 4" required />
+          </div>
+
+          <div>
+            <label class="field-label">Total Daily Dosing Frequency <span class="text-red-500">*</span>
+              <span class="optional-badge">(times/day across all drugs)</span>
+            </label>
+            <input class="field-input" type="number" name="total_daily_frequency" min="0" max="20" placeholder="e.g. 3" required />
+          </div>
+
+          <div>
+            <label class="field-label">New Drug Added at Last Visit? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="new_drug_added" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="new_drug_added" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Is the New Drug Easily Available?</label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="new_drug_available" value="0" checked /> No / Not applicable</label>
+              <label class="radio-label"><input type="radio" name="new_drug_available" value="1" /> Yes</label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════ SECTION 4: SOCIOECONOMIC ═══════════════ -->
+      <div id="socioeconomic" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-5 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">04</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Socioeconomic Factors</h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Monthly Household Income Level <span class="text-red-500">*</span></label>
+            <select class="field-select" name="income_score" required>
+              <option value="" disabled selected>Select level</option>
+              <option value="1">1 — Very Low (&lt; ₹5,000/mo)</option>
+              <option value="2">2 — Low (₹5,000–10,000/mo)</option>
+              <option value="3">3 — Moderate (₹10,000–25,000/mo)</option>
+              <option value="4">4 — High (₹25,000–50,000/mo)</option>
+              <option value="5">5 — Very High (&gt; ₹50,000/mo)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Monthly Drug Cost Level <span class="text-red-500">*</span></label>
+            <select class="field-select" name="drug_cost_score" required>
+              <option value="" disabled selected>Select level</option>
+              <option value="1">1 — Very Low (&lt; ₹100/mo)</option>
+              <option value="2">2 — Low (₹100–300/mo)</option>
+              <option value="3">3 — Moderate (₹300–700/mo)</option>
+              <option value="4">4 — High (₹700–1,500/mo)</option>
+              <option value="5">5 — Very High (&gt; ₹1,500/mo)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label">Monthly Consultation Expenses ≥ ₹250? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="consult_over_250" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="consult_over_250" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Receives Counselling from Others (family/pharmacist/NGO)? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="counselling_others" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="counselling_others" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Receives Counselling from Treating Doctor? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="counselling_doctor" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="counselling_doctor" value="1" /> Yes</label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════ SECTION 5: LIFESTYLE ═══════════════ -->
+      <div id="lifestyle" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-5 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">05</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Lifestyle &amp; Behaviour</h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Following Diabetic Diet? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="on_diabetic_diet" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="on_diabetic_diet" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Exercises Regularly? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="exercises" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="exercises" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Sleeps Adequately (≥6 hrs/night)? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="sleeps_adequately" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="sleeps_adequately" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Currently Smoking or Consuming Alcohol? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="smoking_alcohol" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="smoking_alcohol" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Self Glucose Monitoring Frequency <span class="text-red-500">*</span>
+              <span class="optional-badge">(times/month)</span>
+            </label>
+            <input class="field-input" type="number" name="self_glucose_monitoring" min="0" max="120" placeholder="e.g. 4" required />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════ SECTION 6: COMORBIDITIES ═══════════════ -->
+      <div id="comorbidities" class="section-card bg-white rounded-xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+          <span class="font-mono text-xs font-bold text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded">06</span>
+          <h2 class="font-semibold text-slate-800 text-sm">Comorbidities</h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+          <div>
+            <label class="field-label">Has Hypertension (HTN)? <span class="text-red-500">*</span></label>
+            <div class="radio-group mt-2">
+              <label class="radio-label"><input type="radio" name="has_htn" value="0" required checked /> No</label>
+              <label class="radio-label"><input type="radio" name="has_htn" value="1" /> Yes</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label">Total Number of Comorbidities <span class="text-red-500">*</span></label>
+            <input class="field-input" type="number" name="comorbidity_count" min="0" max="10" placeholder="0" required />
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex flex-col items-center gap-3 mb-12">
+        <button type="submit" id="submit-btn"
+          class="w-full sm:w-auto px-10 py-3.5 bg-primary-700 hover:bg-primary-800 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all text-sm">
+          Predict Adherence Risk →
+        </button>
+        <p class="text-xs text-slate-400">This tool is for research and clinical decision support only — not a substitute for clinical judgment.</p>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
+    DA-AIMS · Drug Adherence AI Monitoring System · Random Forest · F2 = 0.833 · AUC = 0.802
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

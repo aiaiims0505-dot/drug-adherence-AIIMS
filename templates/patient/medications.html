@@ -1,0 +1,90 @@
+{% extends "base_patient.html" %}
+{% block title %}Medications{% endblock %}
+
+{% block content %}
+<style>
+  .page-title { font-size: 22px; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #64748B; margin-bottom: 24px; }
+  .med-card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 18px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .med-name { font-size: 15px; font-weight: 600; color: #1E293B; margin-bottom: 4px; }
+  .med-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .meta-chip { font-size: 11px; font-family: 'JetBrains Mono', monospace; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; padding: 2px 8px; border-radius: 4px; }
+  .meta-chip-gray { background: #F1F5F9; color: #64748B; border-color: #E2E8F0; }
+  .add-section { background: white; border-radius: 14px; border: 1px solid #E2E8F0; padding: 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .add-title { font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 4px; }
+  .add-sub { font-size: 13px; color: #94A3B8; margin-bottom: 20px; }
+</style>
+
+<p class="page-title">My Medications</p>
+<p class="page-sub">Manage the medications you take. Drug class is used by the AI model in your risk assessments.</p>
+
+{% if meds %}
+  {% for med in meds %}
+  <div class="med-card">
+    <div>
+      <p class="med-name">{{ med.name }}</p>
+      <div class="med-meta">
+        <span class="meta-chip">{{ med.drug_class }}</span>
+        {% if med.dose_mg %}<span class="meta-chip-gray mono">{{ med.dose_mg | int }}mg</span>{% endif %}
+        <span class="meta-chip-gray">{{ med.times_per_day }}× per day</span>
+        {% if med.reminder_times %}<span class="meta-chip-gray">⏰ {{ med.reminder_times }}</span>{% endif %}
+      </div>
+    </div>
+    <form method="post" action="/patient/medications/{{ med.id }}/delete" onsubmit="return confirm('Remove {{ med.name }}?')">
+      <button type="submit" class="btn-primary btn-danger btn-sm">Remove</button>
+    </form>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card card-pad" style="text-align:center;padding:32px 20px;margin-bottom:20px;">
+    <p style="font-size:14px;color:#64748B;">No medications added yet. Add your diabetes medications below.</p>
+  </div>
+{% endif %}
+
+<!-- Add medication form -->
+<div class="add-section">
+  <p class="add-title">Add a Medication</p>
+  <p class="add-sub">Add each medication you take. Tip: add your diabetes medications first — they're used in the AI risk model.</p>
+  <form method="post" action="/patient/medications">
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Medication name <span style="color:#EF4444;">*</span></label>
+        <input type="text" name="name" class="field-input" placeholder="e.g. Metformin" required>
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Drug class <span style="color:#EF4444;">*</span></label>
+        <select name="drug_class" class="field-select" required>
+          <option value="Metformin">Metformin (Biguanide)</option>
+          <option value="Sulfonylurea">Sulfonylurea (Glipizide, Glibenclamide, Gliclazide)</option>
+          <option value="New_Gen_Oral">New Gen Oral (DPP-4, SGLT-2, GLP-1)</option>
+          <option value="Other_Combination">Other Combination / Fixed-dose combo</option>
+          <option value="None">None / Other (Statin, ACE inhibitor, etc.)</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-bottom:16px;">
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Dose (mg) <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+        <input type="number" name="dose_mg" class="field-input" placeholder="e.g. 500" step="0.5">
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Times per day <span style="color:#EF4444;">*</span></label>
+        <select name="times_per_day" class="field-select">
+          <option value="1">Once (1×)</option>
+          <option value="2" selected>Twice (2×)</option>
+          <option value="3">Three times (3×)</option>
+          <option value="4">Four times (4×)</option>
+        </select>
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field-label">Reminder times <span style="color:#94A3B8;font-weight:400;">optional</span></label>
+        <input type="text" name="reminder_times" class="field-input" placeholder="e.g. 08:00, 20:00">
+      </div>
+    </div>
+    <button type="submit" class="btn-primary">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Add Medication
+    </button>
+  </form>
+</div>
+{% endblock %}
