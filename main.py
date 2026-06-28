@@ -485,6 +485,7 @@ async def patient_assessment(request: Request):
     user = _patient_required(request)
     if not user:
         return RedirectResponse("/login")
+    paper_mode = request.query_params.get("paper") == "1"
     meds = get_active_medications(user["id"])
     # Pre-fill drug classes from saved medications (up to 3)
     drug_classes = [m["drug_class"] for m in meds if m["drug_class"] != "None"][:3]
@@ -502,6 +503,7 @@ async def patient_assessment(request: Request):
         active="assessment",
         result=None,
         prefill=prefill,
+        paper_mode=paper_mode,
     )
 
 
