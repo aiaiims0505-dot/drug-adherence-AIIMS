@@ -67,32 +67,6 @@
   <p style="font-size:18px;font-weight:700;color:{{ verdict_color }};margin-bottom:4px;">{{ verdict }}</p>
   <p style="font-size:12px;color:#818CF8;margin-bottom:14px;">Non-adherence probability · Random Forest classifier · AUC 0.802 · F2-score 0.833</p>
 
-  {% if result.dominant_category %}
-  <div style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
-    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Primary Risk Driver</p>
-    <p style="font-size:14px;font-weight:700;color:#E2E8F0;">{{ result.dominant_category }}</p>
-  </div>
-  {% endif %}
-
-  {% if result.category_breakdown %}
-  <div style="margin-bottom:4px;">
-    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Likely Model Reasons</p>
-    {% for category, factors in result.category_breakdown.items() %}
-    <div style="margin-bottom:10px;">
-      <p style="font-size:10px;font-weight:700;color:#C7D2FE;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">{{ category }}<span style="font-weight:400;color:#475569;">&nbsp;·&nbsp;{{ factors|length }} factor{{ 's' if factors|length > 1 else '' }}</span></p>
-      {% for f in factors %}
-      <div class="factor-item" style="align-items:flex-start;">
-        <span class="factor-dot" style="background:#818CF8;"></span>
-        <span>
-          <span style="display:block;font-size:13px;font-weight:700;color:#E2E8F0;">{{ f.label }}</span>
-          <span style="display:block;font-size:12px;color:#A5B4FC;line-height:1.45;margin-top:2px;">{{ f.reason }}</span>
-        </span>
-      </div>
-      {% endfor %}
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
 </div>
 <p style="font-size:12px;color:#94A3B8;margin-bottom:20px;text-align:center;">Update your score — re-fill any changed values below and re-run.</p>
 {% endif %}
@@ -329,7 +303,6 @@
         style="border:none;outline:none;font-size:13px;color:#374151;flex:1;min-width:140px;background:transparent;padding:0;">
     </div>
     <input type="hidden" name="side_effects" id="se-hidden" value="{{ prefill.side_effects or '' }}">
-    <p style="font-size:11px;color:#94A3B8;margin-top:5px;">These are recorded for clinical context and are not used by the prediction model.</p>
   </div>
 </div>
 
