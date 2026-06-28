@@ -31,6 +31,22 @@
   .factor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .rec-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px; }
 
+  /* side effect tags */
+  .se-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #EEF2FF; color: #4338CA;
+    border: 1px solid #C7D2FE; border-radius: 20px;
+    font-size: 12px; font-weight: 500; padding: 3px 10px 3px 11px;
+    white-space: nowrap;
+  }
+  .se-tag button {
+    background: none; border: none; cursor: pointer;
+    color: #818CF8; font-size: 14px; line-height: 1;
+    padding: 0; display: flex; align-items: center;
+  }
+  .se-tag button:hover { color: #4338CA; }
+  #se-tag-box:focus-within { border-color: #4F46E5; box-shadow: 0 0 0 2px rgba(79,70,229,0.12); }
+
   /* conditional show/hide */
   #new-drug-avail-row { display: none; }
 </style>
@@ -308,6 +324,17 @@
       <label for="na-no" class="yn-lbl">No</label>
     </div>
   </div>
+
+  <!-- Side effects tag input -->
+  <div class="field-group" style="margin-top:14px;margin-bottom:0;">
+    <label class="field-label">Known Side Effects from Medications <span style="font-size:11px;color:#94A3B8;font-weight:400;">(optional — type and press Enter or comma)</span></label>
+    <div id="se-tag-box" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px;padding:8px 10px;border:1.5px solid #E2E8F0;border-radius:8px;background:white;cursor:text;" onclick="document.getElementById('se-input').focus()">
+      <input id="se-input" type="text" placeholder="e.g. Nausea, Dizziness…" autocomplete="off"
+        style="border:none;outline:none;font-size:13px;color:#374151;flex:1;min-width:140px;background:transparent;padding:0;">
+    </div>
+    <input type="hidden" name="side_effects" id="se-hidden" value="{{ prefill.side_effects or '' }}">
+    <p style="font-size:11px;color:#94A3B8;margin-top:5px;">These are recorded for clinical context and are not used by the prediction model.</p>
+  </div>
 </div>
 
 <!-- ── Section 6: Labs & Monitoring ── -->
@@ -417,5 +444,47 @@
 function showNewDrugAvail(show) {
   document.getElementById('new-drug-avail-row').style.display = show ? 'block' : 'none';
 }
+
+// ── Side effect tag input ──────────────────────────────────────────────────
+(function () {
+  const box    = document.getElementById('se-tag-box');
+  const input  = document.getElementById('se-input');
+  const hidden = document.getElementById('se-hidden');
+
+  let tags = hidden.value ? hidden.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+  function render() {
+    // Remove all existing tags from the box (keep only the input)
+    box.querySelectorAll('.se-tag').forEach(el => el.remove());
+    tags.forEach((tag, i) => {
+      const el = document.createElement('span');
+      el.className = 'se-tag';
+      el.innerHTML = tag + '<button type="button" aria-label="Remove">&times;</button>';
+      el.querySelector('button').onclick = () => { tags.splice(i, 1); render(); };
+      box.insertBefore(el, input);
+    });
+    hidden.value = tags.join(', ');
+  }
+
+  function addTag(raw) {
+    const val = raw.trim().replace(/,+$/, '').trim();
+    if (val && !tags.includes(val)) { tags.push(val); render(); }
+    input.value = '';
+  }
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); addTag(this.value); }
+    if (e.key === 'Backspace' && !this.value && tags.length) {
+      tags.pop(); render();
+    }
+  });
+  input.addEventListener('input', function () {
+    if (this.value.includes(',')) {
+      this.value.split(',').forEach(p => addTag(p));
+    }
+  });
+
+  render(); // restore tags on page reload (prefill)
+})();
 </script>
 {% endblock %}
