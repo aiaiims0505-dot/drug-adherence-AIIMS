@@ -56,6 +56,8 @@
     {% set nonadherent = result.is_nonadherent %}
     {% set p_na = result.p_nonadherent %}
     {% set p_a = result.p_adherent %}
+    {% set verdict = 'Non-Adherent' if p_na > 55 else ('Probably Non-Adherent' if p_na >= 47 else ('Probably Adherent' if p_na >= 40 else 'Adherent')) %}
+    {% set verdict_color = 'text-red-400' if verdict == 'Non-Adherent' else ('text-amber-300' if verdict == 'Probably Non-Adherent' else ('text-lime-300' if verdict == 'Probably Adherent' else 'text-emerald-400')) %}
 
     <!-- ═══ VERDICT HERO — signature element ═══ -->
     <div class="rounded-2xl mb-6 overflow-hidden bg-slate-900 shadow-xl">
@@ -63,26 +65,18 @@
 
         <!-- Primary: the probability number -->
         <div>
-          <p class="font-mono text-xs tracking-[0.2em] uppercase mb-3 {% if nonadherent %}text-red-400{% else %}text-emerald-400{% endif %}">
-            {{ "Non-Adherence Probability" if nonadherent else "Adherence Probability" }}
+          <p class="font-mono text-xs tracking-[0.2em] uppercase mb-3 {{ verdict_color }}">
+            Non-Adherence Probability
           </p>
-          <p class="font-mono font-bold leading-none {% if nonadherent %}text-red-400{% else %}text-emerald-400{% endif %}"
+          <p class="font-mono font-bold leading-none {{ verdict_color }}"
              style="font-size: clamp(4rem, 9vw, 6.5rem); letter-spacing: -0.02em;">
-            {{ p_na if nonadherent else p_a }}%
+            {{ p_na }}%
           </p>
           <div class="mt-4 flex items-center gap-3 flex-wrap">
-            {% if nonadherent %}
-            <span class="inline-flex items-center gap-1.5 bg-red-500/20 border border-red-500/30 text-red-300 text-sm font-semibold px-3 py-1 rounded-full">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-              Predicted Non-Adherent
+            <span class="inline-flex items-center gap-1.5 bg-white/10 border border-white/15 {{ verdict_color }} text-sm font-semibold px-3 py-1 rounded-full">
+              {{ verdict }}
             </span>
-            {% else %}
-            <span class="inline-flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold px-3 py-1 rounded-full">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              Predicted Adherent
-            </span>
-            {% endif %}
-            <span class="text-slate-600 text-xs font-mono">Threshold ≥ 50%</span>
+            <span class="text-slate-600 text-xs font-mono">Four-level adherence verdict</span>
           </div>
         </div>
 
@@ -141,22 +135,6 @@
       <p class="text-xs text-slate-400 mb-4">Features ranked by global importance in the Random Forest model. Bar colour indicates whether this patient's value is above (red) or below (teal) the population mean.</p>
       <div style="height: 220px;">
         <canvas id="factorsChart"></canvas>
-      </div>
-    </div>
-
-    <!-- ═══ RECOMMENDATIONS ═══ -->
-    <div class="mb-6">
-      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Clinical Recommendations</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {% for rec in result.recommendations %}
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex gap-3">
-          <span class="text-2xl flex-shrink-0 leading-tight">{{ rec.icon }}</span>
-          <div>
-            <p class="text-sm font-semibold text-slate-800">{{ rec.title }}</p>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ rec.text }}</p>
-          </div>
-        </div>
-        {% endfor %}
       </div>
     </div>
 

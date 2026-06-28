@@ -56,45 +56,39 @@
 
 {% if result %}
 <!-- ── Result ── -->
-{% set tier_color = '#F87171' if result.risk_tier == 'HIGH' else ('#FBBF24' if result.risk_tier == 'MODERATE' else '#34D399') %}
-{% set tier_label = '⚠ High Non-Adherence Risk' if result.risk_tier == 'HIGH' else ('⚠ Moderate Non-Adherence Risk' if result.risk_tier == 'MODERATE' else '✓ Low Non-Adherence Risk') %}
+{% set verdict = result.verdict if result.verdict else ('Non-Adherent' if result.risk_tier == 'HIGH' else ('Probably Non-Adherent' if result.risk_tier == 'MODERATE' else 'Adherent')) %}
+{% set verdict_color = '#F87171' if verdict == 'Non-Adherent' else ('#FBBF24' if verdict == 'Probably Non-Adherent' else ('#86EFAC' if verdict == 'Probably Adherent' else '#34D399')) %}
 <div class="result-card">
   <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.1em;font-family:'JetBrains Mono',monospace;margin-bottom:8px;">Your Assessment Result</p>
   <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
-    <span class="result-num" style="color:{{ tier_color }};">{{ result.p_nonadherent }}</span>
-    <span style="font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:700;color:{{ tier_color }};">%</span>
+    <span class="result-num" style="color:{{ verdict_color }};">{{ result.p_nonadherent }}</span>
+    <span style="font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:700;color:{{ verdict_color }};">%</span>
   </div>
-  <p style="font-size:16px;font-weight:700;color:{{ tier_color }};margin-bottom:4px;">{{ tier_label }}</p>
-  <!-- Risk tier bar -->
-  <div style="display:flex;gap:4px;margin-bottom:12px;">
-    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'LOW' %}#34D399{% else %}#1F2937{% endif %};"></div>
-    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'MODERATE' %}#FBBF24{% else %}#1F2937{% endif %};"></div>
-    <div style="height:4px;flex:1;border-radius:2px;background:{% if result.risk_tier == 'HIGH' %}#F87171{% else %}#1F2937{% endif %};"></div>
-  </div>
+  <p style="font-size:18px;font-weight:700;color:{{ verdict_color }};margin-bottom:4px;">{{ verdict }}</p>
   <p style="font-size:12px;color:#818CF8;margin-bottom:14px;">Non-adherence probability · Random Forest classifier · AUC 0.802 · F2-score 0.833</p>
 
-  {% if result.factors %}
-  <div style="margin-bottom:14px;">
-    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Top Risk Factors (model-identified)</p>
-    {% for f in result.factors %}
-    <div class="factor-item">
-      <span class="factor-dot" style="background:{% if f.impact == 'high' %}#F87171{% else %}#FBBF24{% endif %};"></span>
-      <span style="font-size:13px;color:#E2E8F0;">{{ f.label }}</span>
-    </div>
-    {% endfor %}
+  {% if result.dominant_category %}
+  <div style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Primary Risk Driver</p>
+    <p style="font-size:14px;font-weight:700;color:#E2E8F0;">{{ result.dominant_category }}</p>
   </div>
   {% endif %}
 
-  {% if result.recommendations %}
-  <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
-    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Personalised Recommendations</p>
-    {% for rec in result.recommendations %}
-    <div class="rec-item">
-      <span style="font-size:18px;flex-shrink:0;line-height:1.3;">{{ rec.icon }}</span>
-      <div>
-        <p style="font-size:13px;font-weight:700;color:#E2E8F0;margin-bottom:2px;">{{ rec.title }}</p>
-        <p style="font-size:12px;color:#94A3B8;line-height:1.5;">{{ rec.text }}</p>
+  {% if result.category_breakdown %}
+  <div style="margin-bottom:4px;">
+    <p style="font-size:10px;color:#818CF8;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Likely Model Reasons</p>
+    {% for category, factors in result.category_breakdown.items() %}
+    <div style="margin-bottom:10px;">
+      <p style="font-size:10px;font-weight:700;color:#C7D2FE;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">{{ category }}<span style="font-weight:400;color:#475569;">&nbsp;·&nbsp;{{ factors|length }} factor{{ 's' if factors|length > 1 else '' }}</span></p>
+      {% for f in factors %}
+      <div class="factor-item" style="align-items:flex-start;">
+        <span class="factor-dot" style="background:#818CF8;"></span>
+        <span>
+          <span style="display:block;font-size:13px;font-weight:700;color:#E2E8F0;">{{ f.label }}</span>
+          <span style="display:block;font-size:12px;color:#A5B4FC;line-height:1.45;margin-top:2px;">{{ f.reason }}</span>
+        </span>
       </div>
+      {% endfor %}
     </div>
     {% endfor %}
   </div>
@@ -298,12 +292,14 @@
   </div>
   <div class="grid-2" style="gap:14px;margin-bottom:14px;">
     <div class="field-group" style="margin-bottom:0;">
-      <label class="field-label">Total number of pills per day <span style="color:#EF4444;">*</span></label>
+      <label class="field-label">Pill burden <span style="color:#EF4444;">*</span></label>
       <input type="number" name="total_pills" class="field-input" placeholder="e.g. 4" min="1" max="30" required value="{{ prefill.total_pills or '' }}">
+      <p style="font-size:11px;color:#94A3B8;margin-top:4px;">Total physical tablets/capsules taken in one day.</p>
     </div>
     <div class="field-group" style="margin-bottom:0;">
-      <label class="field-label">Total doses per day (across all drugs) <span style="color:#EF4444;">*</span></label>
+      <label class="field-label">Daily dosing frequency <span style="color:#EF4444;">*</span></label>
       <input type="number" name="total_daily_frequency" class="field-input" placeholder="e.g. 3" min="1" max="20" required value="{{ prefill.total_daily_frequency or '' }}">
+      <p style="font-size:11px;color:#94A3B8;margin-top:4px;">How many times per day medicines are scheduled, across all diabetes drugs.</p>
     </div>
   </div>
   <div class="field-group">
@@ -422,15 +418,7 @@
     </div>
   </div>
 
-  <div class="field-group" style="margin-bottom:0;">
-    <label class="field-label">Do you receive counselling from <strong>others</strong> (nurse, pharmacist, family, support group)? <span style="color:#EF4444;">*</span></label>
-    <div class="yn-group">
-      <input type="radio" name="counselling_others" id="co2-yes" value="1" class="yn-radio" {% if prefill.counselling_others == '1' %}checked{% endif %} required>
-      <label for="co2-yes" class="yn-lbl">Yes</label>
-      <input type="radio" name="counselling_others" id="co2-no" value="0" class="yn-radio" {% if prefill.counselling_others != '1' %}checked{% endif %}>
-      <label for="co2-no" class="yn-lbl">No</label>
-    </div>
-  </div>
+  <input type="hidden" name="counselling_others" value="0">
 </div>
 
 <button type="submit" class="btn-primary" style="margin-top:8px;">

@@ -137,6 +137,141 @@ def _risk_tier(p_score) -> str | None:
     return "LOW"
 
 
+def _verdict(p_score) -> str | None:
+    if p_score is None:
+        return None
+    if p_score > 55.0:
+        return "Non-Adherent"
+    if p_score >= 47.0:
+        return "Probably Non-Adherent"
+    if p_score >= 40.0:
+        return "Probably Adherent"
+    return "Adherent"
+
+
+def _factor_category(feature: str) -> str:
+    if feature.startswith(("Drug_1_Group_", "Drug_2_Group_", "Drug_3_Group_")):
+        return "Medications"
+    if feature.startswith(("Occupation_", "Marital_status_")):
+        return "Demographics"
+    return _FEAT_CATEGORY.get(feature, "Other")
+
+
+def _factor_reason(factor: dict, form_data: dict) -> str:
+    feature = factor.get("feature", "")
+    direction = factor.get("patient_direction", 0)
+    higher_lower = "above" if direction > 0 else "below"
+
+    value_reasons = {
+        "Last_RBS_value": f"Latest random blood sugar entered: {form_data.get('rbs') or 'not provided'} mg/dL.",
+        "Last_HBAIC_value": f"Latest HbA1c entered: {form_data.get('hba1c') or 'not provided'}%.",
+        "Last_FBS_value": f"Latest fasting blood sugar entered: {form_data.get('fbs') or 'not provided'} mg/dL.",
+        "Financial_Stress_Ratio": (
+            f"Diabetes drug expense score {form_data.get('drug_cost_score')} compared with "
+            f"income score {form_data.get('income_score')}."
+        ),
+        "Income_Score": f"Monthly income score selected: {form_data.get('income_score')}.",
+        "Drug_Cost_Score": f"Monthly diabetes drug expense score selected: {form_data.get('drug_cost_score')}.",
+        "Total_Pills": f"Pill burden entered: {form_data.get('total_pills')} pill(s) per day.",
+        "Total_Daily_Frequency": f"Daily dosing frequency entered: {form_data.get('total_daily_frequency')} dose time(s) per day.",
+        "Total_Drugs_Prescribed": (
+            "Diabetes drug classes selected: "
+            + ", ".join(
+                d for d in [
+                    form_data.get("drug1_class"),
+                    form_data.get("drug2_class"),
+                    form_data.get("drug3_class"),
+                ]
+                if d and d != "None"
+            )
+            + "."
+        ),
+        "Duration_of_illness_months": f"Diabetes duration entered: {form_data.get('duration_months')} month(s).",
+        "Duration_Years": f"Diabetes duration entered: {form_data.get('duration_months')} month(s).",
+        "Distance_nearby_facility_from_house_approx_km": f"Clinic distance entered: {form_data.get('distance_km')} km.",
+        "Time_since_last_lab_investigation_months": (
+            f"Time since last lab investigation: {form_data.get('time_since_lab_months') or 'not provided'} month(s)."
+        ),
+        "Self_Glucose_Monitoring_Monthly": (
+            f"Self blood glucose monitoring entered: {form_data.get('self_glucose_monitoring')} time(s) per month."
+        ),
+        "Comorbidity_Count": f"Other comorbidities selected: {form_data.get('comorbidity_count')}.",
+        "Has_HTN": "Hypertension was marked as present." if form_data.get("has_htn") == "1" else "Hypertension was not marked.",
+        "On_diabetic_diet": "Diabetic diet marked yes." if form_data.get("on_diabetic_diet") == "1" else "Diabetic diet marked no.",
+        "Do_you_exercise": "Regular exercise marked yes." if form_data.get("exercises") == "1" else "Regular exercise marked no.",
+        "Do_you_sleep_adequately": "Adequate sleep marked yes." if form_data.get("sleeps_adequately") == "1" else "Adequate sleep marked no.",
+        "Currently_any_smoking_alcohol_intake": (
+            "Current smoking/alcohol use marked yes."
+            if form_data.get("smoking_alcohol") == "1"
+            else "Current smoking/alcohol use marked no."
+        ),
+        "Do_you_get_counselling_regarding_disease_drug_use_drug_adherance_treating_doctor": (
+            "Medication counselling from treating doctor marked yes."
+            if form_data.get("counselling_doctor") == "1"
+            else "Medication counselling from treating doctor marked no."
+        ),
+        "Rough_monthly_expenses_on_consultation_rupees_250": (
+            "Monthly consultation expense of Rs 250 or more marked yes."
+            if form_data.get("consult_over_250") == "1"
+            else "Monthly consultation expense of Rs 250 or more marked no."
+        ),
+    }
+
+    if feature in value_reasons:
+        return value_reasons[feature]
+    if feature.startswith(("Drug_1_Group_", "Drug_2_Group_", "Drug_3_Group_")):
+        return "Selected diabetes medication class contributed to the model score."
+    return f"This value is {higher_lower} the model training average for this feature."
+
+
+_FEAT_CATEGORY: dict[str, str] = {
+    "Financial_Stress_Ratio": "Finance",
+    "Income_Score": "Finance",
+    "Drug_Cost_Score": "Finance",
+    "Rough_monthly_expenses_on_consultation_rupees_250": "Finance",
+    "Last_RBS_value": "Diabetes Control",
+    "Last_HBAIC_value": "Diabetes Control",
+    "Last_FBS_value": "Diabetes Control",
+    "Duration_of_illness_months": "Diabetes Control",
+    "Duration_Years": "Diabetes Control",
+    "Comorbidity_Count": "Diabetes Control",
+    "Has_HTN": "Diabetes Control",
+    "Total_Pills": "Medications",
+    "Total_Daily_Frequency": "Medications",
+    "Total_Drugs_Prescribed": "Medications",
+    "Any_new_drug_added_in_the_last_visit": "Medications",
+    "Is_the_new_drug_easily_available": "Medications",
+    "On_diabetic_diet": "Lifestyle",
+    "Do_you_exercise": "Lifestyle",
+    "Do_you_sleep_adequately": "Lifestyle",
+    "Currently_any_smoking_alcohol_intake": "Lifestyle",
+    "Self_Glucose_Monitoring_Monthly": "Lifestyle",
+    "Distance_nearby_facility_from_house_approx_km": "Access & Support",
+    "Time_since_last_lab_investigation_months": "Access & Support",
+    "Do_you_get_counselling_regarding_disease_drug_use_drug_adherance_others": "Access & Support",
+    "Do_you_get_counselling_regarding_disease_drug_use_drug_adherance_treating_doctor": "Access & Support",
+    "Residence_tribal": "Access & Support",
+    "Residence_urban": "Access & Support",
+    "Age": "Demographics",
+    "Sex": "Demographics",
+    "Education": "Demographics",
+    "Family_Size": "Demographics",
+    "weight_kg": "Demographics",
+    "Height_cm": "Demographics",
+    "BMI_kg_m2": "Demographics",
+}
+
+
+def _categorize_factors(factors: list) -> dict:
+    cats: dict[str, list] = {}
+    for f in factors:
+        cat = f.get("category") or _factor_category(f.get("feature", ""))
+        if cat not in cats:
+            cats[cat] = []
+        cats[cat].append(f)
+    return cats
+
+
 def _simulate_sms(user_id: int, phone: str, message: str):
     phone = phone or "unknown"
     with get_db() as conn:
@@ -480,16 +615,27 @@ async def run_patient_assessment(
         is_nonadherent = 0
 
     factors = [
-        {"label": f["label"], "impact": "high" if f["importance"] > 0.05 else "medium"}
+        {
+            "label": f["label"],
+            "impact": "high" if f["importance"] > 0.05 else "medium",
+            "feature": f["feature"],
+            "category": _factor_category(f["feature"]),
+            "reason": _factor_reason(f, form_data),
+        }
         for f in pred.get("top_factors", [])
     ]
+
+    category_breakdown = _categorize_factors(factors)
+    dominant_category = max(category_breakdown, key=lambda c: len(category_breakdown[c])) if category_breakdown else None
 
     result = {
         "p_nonadherent": round(p_nonadherent, 1),
         "is_nonadherent": is_nonadherent,
         "risk_tier": risk_tier,
+        "verdict": _verdict(p_nonadherent),
         "factors": factors,
-        "recommendations": pred.get("recommendations", []),
+        "category_breakdown": category_breakdown,
+        "dominant_category": dominant_category,
     }
 
     with get_db() as conn:
@@ -517,7 +663,7 @@ async def run_patient_assessment(
         "self_glucose_monitoring": self_glucose_monitoring,
         "on_diabetic_diet": on_diabetic_diet, "exercises": exercises,
         "sleeps_adequately": sleeps_adequately, "smoking_alcohol": smoking_alcohol,
-        "counselling_doctor": counselling_doctor, "counselling_others": counselling_others,
+        "counselling_doctor": counselling_doctor,
         "side_effects": side_effects,
     }
 

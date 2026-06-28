@@ -306,12 +306,14 @@
           </div>
 
           <div>
-            <label class="field-label">Total Pills Per Day <span class="text-red-500">*</span></label>
+            <label class="field-label">Pill Burden <span class="text-red-500">*</span>
+              <span class="optional-badge">(tablets/capsules per day)</span>
+            </label>
             <input class="field-input" type="number" name="total_pills" min="0" max="30" placeholder="e.g. 4" required />
           </div>
 
           <div>
-            <label class="field-label">Total Daily Dosing Frequency <span class="text-red-500">*</span>
+            <label class="field-label">Daily Dosing Frequency <span class="text-red-500">*</span>
               <span class="optional-badge">(times/day across all drugs)</span>
             </label>
             <input class="field-input" type="number" name="total_daily_frequency" min="0" max="20" placeholder="e.g. 3" required />
@@ -376,13 +378,7 @@
             </div>
           </div>
 
-          <div>
-            <label class="field-label">Receives Counselling from Others (family/pharmacist/NGO)? <span class="text-red-500">*</span></label>
-            <div class="radio-group mt-2">
-              <label class="radio-label"><input type="radio" name="counselling_others" value="0" required checked /> No</label>
-              <label class="radio-label"><input type="radio" name="counselling_others" value="1" /> Yes</label>
-            </div>
-          </div>
+          <input type="hidden" name="counselling_others" value="0" />
 
           <div>
             <label class="field-label">Receives Counselling from Treating Doctor? <span class="text-red-500">*</span></label>
