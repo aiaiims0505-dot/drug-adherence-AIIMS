@@ -20,7 +20,7 @@ from db import (
 )
 from predict import predict
 
-app = FastAPI(title="DA-AIMS")
+app = FastAPI(title="DA-AIIMS")
 
 BASE = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
@@ -173,7 +173,7 @@ def _factor_reason(factor: dict, form_data: dict) -> str:
         "Income_Score": f"Monthly income score selected: {form_data.get('income_score')}.",
         "Drug_Cost_Score": f"Monthly diabetes drug expense score selected: {form_data.get('drug_cost_score')}.",
         "Total_Pills": f"Pill burden entered: {form_data.get('total_pills')} pill(s) per day.",
-        "Total_Daily_Frequency": f"Daily dosing frequency entered: {form_data.get('total_daily_frequency')} dose time(s) per day.",
+        "Total_Daily_Frequency": f"Pill burden entered: {form_data.get('total_pills')} pill(s) per day.",
         "Total_Drugs_Prescribed": (
             "Diabetes drug classes selected: "
             + ", ".join(
@@ -929,7 +929,7 @@ async def send_bulk_reminders(request: Request):
         assessment = get_latest_assessment(p["id"])
         if assessment and assessment["is_nonadherent"] and p.get("phone"):
             msg = (
-                f"DA-AIMS Reminder: Hi {p['name']}, your adherence risk score is elevated. "
+                f"DA-AIIMS Reminder: Hi {p['name']}, your adherence risk score is elevated. "
                 "Please take your medications as prescribed and consult your doctor if you have concerns."
             )
             _simulate_sms(p["id"], p["phone"], msg)
@@ -947,7 +947,7 @@ async def send_single_reminder(patient_id: int, request: Request):
     patient = get_user(patient_id)
     if patient and patient.get("phone"):
         msg = (
-            f"DA-AIMS: Hi {patient['name']}, your doctor has sent you a reminder to take your "
+            f"DA-AIIMS: Hi {patient['name']}, your doctor has sent you a reminder to take your "
             "diabetes medications as prescribed. Please contact the clinic if you have any questions."
         )
         _simulate_sms(patient_id, patient["phone"], msg)

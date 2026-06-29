@@ -40,7 +40,7 @@ FEATURE_LABELS = {
     "Last_HBAIC_value": "HbA1c Level",
     "Last_FBS_value": "Fasting Blood Sugar",
     "Financial_Stress_Ratio": "Financial Stress (Drug Cost/Income)",
-    "Total_Daily_Frequency": "Daily Dosing Frequency",
+    "Total_Daily_Frequency": "Pill Burden",
     "Total_Drugs_Prescribed": "Number of Drugs",
     "Duration_of_illness_months": "Duration of Illness",
     "Age": "Patient Age",

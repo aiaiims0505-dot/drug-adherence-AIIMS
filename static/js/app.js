@@ -26,7 +26,16 @@ updateActivePill();
 const form = document.getElementById('main-form');
 const submitBtn = document.getElementById('submit-btn');
 if (form && submitBtn) {
+  const pills = document.getElementById('tool-total-pills');
+  const dailyFrequency = document.getElementById('tool-total-daily-frequency');
+  function syncDailyFrequency() {
+    if (pills && dailyFrequency) dailyFrequency.value = pills.value || '0';
+  }
+  if (pills) pills.addEventListener('input', syncDailyFrequency);
+  syncDailyFrequency();
+
   form.addEventListener('submit', (e) => {
+    syncDailyFrequency();
     const required = form.querySelectorAll('[required]');
     let valid = true;
     required.forEach(el => {

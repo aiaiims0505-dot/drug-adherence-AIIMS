@@ -1,12 +1,12 @@
-// DA-AIMS Service Worker for push notifications
+// DA-AIIMS Service Worker for push notifications
 self.addEventListener('push', function(event) {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'DA-AIMS Reminder';
+  const title = data.title || 'DA-AIIMS Reminder';
   const options = {
     body: data.body || 'Time to take your medication.',
     icon: '/static/icon.png',
     badge: '/static/badge.png',
-    tag: 'da-aims-reminder',
+    tag: 'DA-AIIMS-reminder',
     requireInteraction: true
   };
   event.waitUntil(self.registration.showNotification(title, options));
