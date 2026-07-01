@@ -54,6 +54,13 @@ def _redirect(path: str, flash_msg: str = "", flash_type: str = "success") -> Re
     return r
 
 
+def _login_redirect(request: Request) -> RedirectResponse:
+    """Redirect to /login with 303 and clear any stale session cookie to prevent redirect loops."""
+    resp = RedirectResponse("/login", status_code=303)
+    clear_session_cookie(resp)
+    return resp
+
+
 def _get_flash(request: Request) -> tuple[str, str]:
     msg = request.cookies.get("flash_msg", "")
     typ = request.cookies.get("flash_type", "success")
@@ -283,21 +290,37 @@ def _simulate_sms(user_id: int, phone: str, message: str):
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
+def _resolve_logged_in_user(request: Request):
+    """Return (user, role) if session is valid AND the user exists in the DB, else (None, None)."""
+    sess = read_session(request)
+    if not sess:
+        return None, None
+    role = sess.get("role")
+    user = get_user(sess["id"])
+    if not user or user["role"] != role:
+        return None, None
+    return user, role
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    sess = read_session(request)
-    if sess:
-        if sess.get("role") == "patient":
-            return RedirectResponse("/patient/dashboard")
-        return RedirectResponse("/doctor/dashboard")
+    user, role = _resolve_logged_in_user(request)
+    if user:
+        return RedirectResponse(
+            "/patient/dashboard" if role == "patient" else "/doctor/dashboard",
+            status_code=303,
+        )
     return _render("login.html", active_tab="login", error="")
 
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    sess = read_session(request)
-    if sess:
-        return RedirectResponse("/patient/dashboard" if sess.get("role") == "patient" else "/doctor/dashboard")
+    user, role = _resolve_logged_in_user(request)
+    if user:
+        return RedirectResponse(
+            "/patient/dashboard" if role == "patient" else "/doctor/dashboard",
+            status_code=303,
+        )
     return _render("login.html", active_tab="login", error="")
 
 
@@ -356,7 +379,7 @@ async def logout():
 async def patient_dashboard(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     today = _today()
     week_start = _week_start()
@@ -387,7 +410,7 @@ async def patient_dashboard(request: Request):
 async def patient_medications(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     meds = get_active_medications(user["id"])
     return _render_patient("patient/medications.html", user, request, active="medications", meds=meds)
 
@@ -403,7 +426,7 @@ async def add_medication(
 ):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     with get_db() as conn:
         conn.execute(
             "INSERT INTO medications (user_id, name, drug_class, dose_mg, times_per_day, reminder_times) VALUES (?,?,?,?,?,?)",
@@ -417,7 +440,7 @@ async def add_medication(
 async def delete_medication(med_id: int, request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     with get_db() as conn:
         conn.execute("UPDATE medications SET active=0 WHERE id=? AND user_id=?", (med_id, user["id"]))
     return _redirect("/patient/medications", "Medication removed.")
@@ -429,7 +452,7 @@ async def delete_medication(med_id: int, request: Request):
 async def patient_log(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     today = _today()
     meds = get_active_medications(user["id"])
     today_logs = get_today_logs(user["id"], today)
@@ -460,7 +483,7 @@ async def patient_log(request: Request):
 async def save_dose_log(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     form = await request.form()
     today = _today()
     with get_db() as conn:
@@ -484,7 +507,7 @@ async def save_dose_log(request: Request):
 async def patient_assessment(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     paper_mode = request.query_params.get("paper") == "1"
     meds = get_active_medications(user["id"])
     # Pre-fill drug classes from saved medications (up to 3)
@@ -556,7 +579,7 @@ async def run_patient_assessment(
 ):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     # Count comorbidities from checkbox list
     form = await request.form()
@@ -683,7 +706,7 @@ async def run_patient_assessment(
 async def patient_education(request: Request, cat: str = ""):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     articles = get_by_category(cat) if cat else ARTICLES
     return _render_patient(
         "patient/education.html", user, request,
@@ -697,7 +720,7 @@ async def patient_education(request: Request, cat: str = ""):
 async def patient_article(slug: str, request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     article = get_article(slug)
     if not article:
         return RedirectResponse("/patient/education")
@@ -716,7 +739,7 @@ async def patient_article(slug: str, request: Request):
 async def patient_lifestyle(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     today = _today()
     today_log = get_lifestyle_log(user["id"], today)
     history = get_lifestyle_history(user["id"], days=7)
@@ -739,7 +762,7 @@ async def save_lifestyle(
 ):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     today = _today()
     with get_db() as conn:
         conn.execute("""
@@ -766,7 +789,7 @@ async def save_lifestyle(
 async def patient_notifications(request: Request):
     user = _patient_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
     with get_db() as conn:
         push_sub = conn.execute(
             "SELECT id FROM push_subscriptions WHERE user_id=? LIMIT 1", (user["id"],)
@@ -817,7 +840,7 @@ async def unsubscribe_push(request: Request):
 async def doctor_dashboard(request: Request):
     user = _doctor_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     patients_raw = get_all_patients()
     today = _today()
@@ -866,7 +889,7 @@ async def doctor_dashboard(request: Request):
 async def doctor_patient_detail(patient_id: int, request: Request):
     user = _doctor_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     patient_user = get_user(patient_id)
     if not patient_user or patient_user["role"] != "patient":
@@ -921,7 +944,7 @@ async def doctor_patient_detail(patient_id: int, request: Request):
 async def send_bulk_reminders(request: Request):
     user = _doctor_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     patients = get_all_patients()
     count = 0
@@ -942,7 +965,7 @@ async def send_bulk_reminders(request: Request):
 async def send_single_reminder(patient_id: int, request: Request):
     user = _doctor_required(request)
     if not user:
-        return RedirectResponse("/login")
+        return _login_redirect(request)
 
     patient = get_user(patient_id)
     if patient and patient.get("phone"):
